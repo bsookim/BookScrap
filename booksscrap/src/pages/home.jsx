@@ -6,6 +6,7 @@ const Home = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    //https://books.toscrape.com/catalogue/category/books_1/index.html << 해당 사이트밖에 안됨
     try {
       await axios.post('http://localhost:8080/books/save', { url });
     } catch (error) {
