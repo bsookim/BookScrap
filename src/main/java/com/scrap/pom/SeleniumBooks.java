@@ -1,11 +1,9 @@
 package com.scrap.pom;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import org.openqa.selenium.NoSuchElementException;
 
-import org.jsoup.select.Elements;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -16,7 +14,6 @@ import com.scrap.data.BooksData;
 import com.scrap.entity.BookCategory;
 import com.scrap.entity.Books;
 
-import org.jsoup.nodes.Element;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,7 +45,7 @@ public class SeleniumBooks {
 
 	@FindBy(xpath = "//table[@class='table table-striped']//th[text()='Product Type']/following-sibling::td")
 	private WebElement productType;
-
+	
 	public BooksData booksHref(WebDriver driver, SeleniumBookCategory sbc) {
 	    BooksData bookData = new BooksData();
 
@@ -64,18 +61,48 @@ public class SeleniumBooks {
 	        bookData.getBookCategoryList().add(bookCategory);
 	    }
  
+	    List<String> hrefs =  new ArrayList<>();
+	    List<WebElement> hrefsOnPage  = new ArrayList<>();
 	    for (String categoryUrl : categoryUrls) {
 	        driver.get(categoryUrl);
-	        List<WebElement> hrefs = driver.findElements(
-	            By.cssSelector("#default > div > div > div > div > section > div:nth-child(2) > ol > li > article > div.image_container a")
-	        );
 
-	        for (WebElement href : hrefs) {
-	            String url = href.getDomProperty("href");
-	            bookData.getUrls().add(url);
+	        Integer end = null;
+	        try {
+		        WebElement endPageElement = driver.findElement(
+		        	    By.cssSelector("#default > div > div > div > div > section > div:nth-child(2) > div > ul > li.current")
+		        	);
+	        	end = Integer.parseInt(endPageElement.getText().replaceAll("Page 1 of ", ""));
+	        }catch(NoSuchElementException e) {
+	        	
+	        }
+	        
+	        if(end==null) {
+		        //페이지가 1페이지밖에없음
+	        	hrefsOnPage = driver.findElements(
+	        	        By.cssSelector("div.image_container a")
+	        	    );
+	        	hrefs.addAll(detailUrls(hrefsOnPage));
+
+	        }else {
+	        	//여러페이지
+	        	//페이지 이동 시 list를 계속 재조회 해야함 button도 마찬가지
+	        	for (Integer i = 1; i < end; i++) {
+	        	    hrefsOnPage = driver.findElements(
+	        	        By.cssSelector("div.image_container a")
+	        	    );
+	        	    hrefs.addAll(detailUrls(hrefsOnPage));
+	        	    List<WebElement> nextButtons = driver.findElements(
+	        	        By.cssSelector("li.next > a")
+	        	    );
+	        	    if (!nextButtons.isEmpty()) {
+	        	        clickNoSuchException(nextButtons.get(0));
+	        	    } 
+	        	}
+        	
 	        }
 	    }
-
+	    bookData.getUrls().addAll(hrefs);
+	    
 	    return bookData;
 	}
 
@@ -86,14 +113,16 @@ public class SeleniumBooks {
 	        driver.get(url);
 	        SeleniumBooks sb = new SeleniumBooks();
 	        PageFactory.initElements(driver, sb);
-
+	        //일부 사이트들 보면 옵션 클릭 시 썸네일이나 가격정보가 변경되는 경우가 있음.
+	        //하지만 해당 사이트에 상세정보는 옵션이 없고 동적 움직임이 없는 사이트이다 보니 jsoup가 훨씬 더 적합해보임
+	        //결론 : 추후에 jsoup로 변경
 	        Books book = Books.builder()
-	            .title(nosuchException(sb.getTitle()))
-	            .price(nosuchException(sb.getPrice()))
-	            .stock(nosuchException(sb.getStock()))
-	            .upc(nosuchException(sb.getUpc()))
-	            .productType(nosuchException(sb.getProductType()))
-	            .descpription(nosuchException(sb.getDescpription()))
+	            .title(textNoSuchException(sb.getTitle()))
+	            .price(textNoSuchException(sb.getPrice()))
+	            .stock(textNoSuchException(sb.getStock()).replaceAll("^[0-9]", ""))//숫자만 나오게하는 정규표현식 숫자가 아닌 문자는 모두 ""으로 대체
+	            .upc(textNoSuchException(sb.getUpc()))
+	            .productType(textNoSuchException(sb.getProductType()))
+	            .descpription(textNoSuchException(sb.getDescpription()))
 	            .currnetUrl(driver.getCurrentUrl())
 	            .build();
 
@@ -103,7 +132,17 @@ public class SeleniumBooks {
 	    return books;
 	}
 	
-	public String nosuchException(WebElement element) {
+	public List<String> detailUrls(List<WebElement> list){
+		List<String> urls = new ArrayList<>();
+		for(WebElement a : list) {
+			String url = a.getDomProperty("href");
+			System.out.println(url);
+			urls.add(url);
+		}
+		return urls;
+	}
+	
+	public String textNoSuchException(WebElement element) {
 		String text ="";
 		try {
 			text = element.getText();
@@ -111,5 +150,13 @@ public class SeleniumBooks {
 			System.out.println(e);
 		}
 		return text;
+	}
+	
+	public void clickNoSuchException(WebElement element) {
+		try {
+			element.click();
+		}catch(NoSuchElementException e){
+			System.out.println(e);
+		}
 	}
 }
