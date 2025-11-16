@@ -4,10 +4,10 @@
 
 Table 정보  
 
-BookCategory 
-컬럼 정보 
-id : 	자동증가 값 
-categoryUrl  : 카테고리 URL 정보
+BookCategory  
+컬럼 정보  
+id : 	자동증가 값  
+categoryUrl  : 카테고리 URL 정보 
 
 Table 정보 
 Books
