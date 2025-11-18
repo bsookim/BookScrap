@@ -115,6 +115,7 @@ public class SeleniumBooks {
 	        PageFactory.initElements(driver, sb);
 	        //일부 사이트들 보면 옵션 클릭 시 썸네일이나 가격정보가 변경되는 경우가 있음.
 	        //하지만 해당 사이트에 상세정보는 옵션이 없고 동적 움직임이 없는 사이트이다 보니 jsoup가 훨씬 더 적합해보임
+			//jsoup는 stale에러 방지도 할 수 있음.
 	        //결론 : 추후에 jsoup로 변경
 	        Books book = Books.builder()
 	            .title(textNoSuchException(sb.getTitle()))
