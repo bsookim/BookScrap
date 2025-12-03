@@ -1,0 +1,7 @@
+package com.scrap.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public class BookReplyRepository implements JpaRepository<BookReply, Long>{
+
+}

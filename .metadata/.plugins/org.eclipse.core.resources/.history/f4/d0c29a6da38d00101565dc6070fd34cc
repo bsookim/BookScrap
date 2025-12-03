@@ -1,0 +1,227 @@
+package com.coupang.scrap.view;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.ai.OpenAiClient;
+import com.coupang.cloudflare.CloudflareImageUploader;
+import com.coupang.entity.Coupang;
+import com.coupang.entity.CoupangContents;
+import com.coupang.entity.CoupangItems;
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+import com.coupang.scrap.options.OptionHandler;
+import com.coupang.scrap.options.OptionProcessor;
+import com.coupang.scrap.options.PettobOptionHandler;
+import com.coupang.utils.JsoupUtils;
+import com.coupang.utils.PriceUtils;
+
+public class ZentradeProductViewHandler implements ProductViewHandler{
+
+	@Override
+	public CoupangRequestList handle(WebDriver driver, String url, CoupangRepository coupangRepository) {
+		CoupangRequestList requestList = new CoupangRequestList();
+		try {
+	        driver.get(url);
+
+	        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+	        wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("#goods_spec")));
+
+	        String html = driver.getPageSource();
+	        Document doc = Jsoup.parse(html);
+
+	        String title = JsoupUtils.extractText(doc, "#goods_spec .info_name");
+	        int sellingPrice = PriceUtils.parsePrice(JsoupUtils.extractText(doc, "#price"));
+	        int consumerPrice = PriceUtils.parsePrice(JsoupUtils.extractText(doc, "#price"));
+	        String productCode = JsoupUtils.extractText(doc, "#goods_spec tr:contains(상품번호) td");
+	        productCode = getProductCode(productCode);
+	        
+	        Integer existCode = coupangRepository.existsByProductCode(productCode);
+	        if (existCode != null && existCode > 0) {
+	            System.out.println("이미 존재하는 상품: " + productCode + " => 스킵");
+	            return requestList; // 빈 리스트 반환
+	        }
+
+	        
+	        String thumbnail = JsoupUtils.extractImageSrc(doc, "#objImg", url);
+	        		
+	        List<String> subThumbnailList = JsoupUtils.extractImageSrcList(
+	                doc,
+	                "body > table > tbody > tr > td > table > tbody > tr > td.outline_side > div.indiv > div > div > div > table > tbody > tr > td > img",
+	                url
+	        );
+	        List<String> detailImageList = JsoupUtils.extractDetailImages(
+	                doc,
+	                "#contents > table > tbody > tr > td img",
+	                url
+	        );
+//	        
+//	        Map<String, List<String>> imagesToUpload = new HashMap<>();
+//	        imagesToUpload.put("thumbnail", Collections.singletonList(thumbnail));
+//	        imagesToUpload.put("subThumbnail", subThumbnailList);
+//	        imagesToUpload.put("detailImage", detailImageList);
+//
+//	        Map<String, List<String>> uploadedImages = CloudflareImageUploader.uploadImages(imagesToUpload);
+//
+//	        List<WebElement> selects = driver.findElements(By.cssSelector("#goods_spec select"));
+//	        
+//	        List<OptionHandler<String>> handlers = new ArrayList<>();
+//	        for (WebElement sel : selects) {
+//	            handlers.add(new PettobOptionHandler(driver, sel));
+//	        }
+//
+//	        List<List<String>> allCombinations = OptionProcessor.processAllOptions(handlers, 0, new ArrayList<>());
+//	        OpenAiClient openAiClient = new OpenAiClient();
+//	        String aiTitle = openAiClient.optimizeProductName(title);
+//	        
+//	        Coupang coupang = CoupangRequestList.createCoupangFromDto(
+//                    title,
+//                    aiTitle,
+//                    manufacture,
+//                    brand,
+//                    productCode,
+//                    driver.getCurrentUrl()
+//            );
+//        	requestList.getCoupangList().add(coupang);
+//        	
+//        	if(selects.size()==0) {
+//        		CoupangItems item = CoupangRequestList.createCoupangItemsFromDto(
+//        		        coupang,
+//        		        title,
+//        		        sellingPrice,
+//        		        consumerPrice,
+//        		        10
+//        		);
+//        		requestList.getCoupangItemsList().add(item);
+//
+//        		List<String> allImages = Stream.concat(
+//        		        uploadedImages.get("thumbnail").stream(),
+//        		        uploadedImages.getOrDefault("subThumbnail", List.of()).stream().limit(8)
+//        		    )
+//        		    .toList();
+//
+//        		IntStream.range(0, allImages.size())
+//        		    .mapToObj(i -> {
+//        		        String type = (i == 0) ? "REPRESENTATION" : "DETAIL";
+//        		        return CoupangRequestList.createCoupangImagesFromDto(
+//        		            coupang,
+//        		            item,
+//        		            i,
+//        		            allImages.get(i),
+//        		            type
+//        		        );
+//        		    })
+//        		    .forEach(requestList.getCoupangImagesList()::add);
+//
+//        		CoupangContents contents = CoupangRequestList.createCoupangContentsFromDto(
+//        		        coupang,
+//        		        item
+//        		);
+//        		requestList.getCoupangContentsList().add(contents);
+//        		
+//        		List<String> detailImages = uploadedImages.getOrDefault("detailImage", List.of());
+//
+//        		detailImages.stream()
+//        		    .map(imgUrl -> {
+//        		        String htmlContent = "<p style='text-align:center'><img src='" + imgUrl + "'/></p>";
+//        		        return CoupangRequestList.createCoupangDetailsFromDto(
+//        		                coupang,
+//        		                contents, 
+//        		                htmlContent
+//        		        );
+//        		    })
+//        		    .forEach(requestList.getCoupangDetailsList()::add);
+//
+//
+//        	}else {
+//		        for (List<String> combo : allCombinations) {
+//		            CoupangItems item = CoupangRequestList.createCoupangItemsFromDto(
+//	        		        coupang,
+//	        		        String.join(" ", combo),
+//	        		        sellingPrice,
+//	        		        consumerPrice,
+//	        		        10
+//	        		);
+//	        		requestList.getCoupangItemsList().add(item);
+//	        		
+//	        		List<String> allImages = Stream.concat(
+//	        		        uploadedImages.get("thumbnail").stream(),
+//	        		        uploadedImages.getOrDefault("subThumbnail", List.of()).stream().limit(8)
+//	        		    )
+//	        		    .toList();
+//
+//	        		IntStream.range(0, allImages.size())
+//	        		    .mapToObj(i -> {
+//	        		        String type = (i == 0) ? "REPRESENTATION" : "DETAIL";
+//	        		        return CoupangRequestList.createCoupangImagesFromDto(
+//	        		            coupang,
+//	        		            item,
+//	        		            i,
+//	        		            allImages.get(i),
+//	        		            type
+//	        		        );
+//	        		    })
+//	        		    .forEach(requestList.getCoupangImagesList()::add);
+//
+//	        		CoupangContents contents = CoupangRequestList.createCoupangContentsFromDto(
+//	        		        coupang,
+//	        		        item
+//	        		);
+//	        		requestList.getCoupangContentsList().add(contents);
+//	        		
+//	        		List<String> detailImages = uploadedImages.getOrDefault("detailImage", List.of());
+//
+//	        		detailImages.stream()
+//	        		    .map(imgUrl -> {
+//	        		        String htmlContent = "<p style='text-align:center'><img src='" + imgUrl + "'/></p>";
+//	        		        return CoupangRequestList.createCoupangDetailsFromDto(
+//	        		                coupang,
+//	        		                contents, 
+//	        		                htmlContent
+//	        		        );
+//	        		    })
+//	        		    .forEach(requestList.getCoupangDetailsList()::add);
+//	        		
+//	        		IntStream.range(0, Math.min(combo.size(), 3))
+//		        	    .mapToObj((int i) -> {
+//		        	        String optionName = (i == 0) ? "옵션" : "옵션" + (i + 1);
+//		        	        String optionValue = combo.get(i);
+//	
+//		        	        return CoupangRequestList.createCoupangAttributesFromDto(
+//		        	                coupang,
+//		        	                item,
+//		        	                optionName,
+//		        	                optionValue
+//		        	        );
+//		        	    })
+//		        	    .forEach(requestList.getCoupangAttributesList()::add);
+//
+//		        }
+//        	}
+	        
+	        return requestList;
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return null;
+	    }
+	}
+
+	private String getProductCode(String productCode) {
+		return productCode.replaceAll("[^0-9]", "");
+	}
+	
+}

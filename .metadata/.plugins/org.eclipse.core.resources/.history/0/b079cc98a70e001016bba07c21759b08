@@ -1,0 +1,39 @@
+package com.coupang.dto.response;
+
+import com.coupang.entity.CoupangImages;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Builder
+public class CoupangImagesDto {
+
+	private int imageOrder;
+	
+	private String imageType;
+	
+	private String cdnPath;
+	
+	private String vendorPath;
+	
+	private Long coupangItemsId;
+	
+	private Long coupangId;
+	
+	public static CoupangImagesDto fromEntity(CoupangImages images) {
+        return CoupangImagesDto.builder()
+            .imageOrder(images.getImageOrder())
+            .imageType(images.getImageType())
+            .cdnPath(images.getCdnPath())
+            .vendorPath(images.getVendorPath())
+            .coupangId(images.getCoupang().getCoupangId())
+            .coupangItemsId(images.getCoupangItems().getItemId())
+            .build();
+	}
+	
+}

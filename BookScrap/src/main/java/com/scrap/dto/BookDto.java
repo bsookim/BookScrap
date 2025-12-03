@@ -1,0 +1,91 @@
+package com.scrap.dto;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+
+import com.scrap.entity.Book;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public class BookDto {
+	
+	private Long id;
+	
+	private String title;
+	
+	private String price;
+	
+	private String stock;
+	
+	private String description;
+	
+	private String upc;
+	
+	private String productType;
+	
+	private String currentUrl;
+	
+	private List<BookReplyDto> reply = new ArrayList<>();
+	
+	private String thumbNail;
+	
+	public static BookDto findByBookId(Book book) {
+		BookDto dto = new BookDto();
+		dto.id = book.getId();
+	    dto.title = book.getTitle();
+	    dto.price = book.getPrice();
+	    dto.stock = book.getStock();
+	    dto.description = book.getDescription();
+	    dto.upc = book.getUpc();
+	    dto.productType = book.getProductType();
+	    dto.currentUrl = book.getCurrentUrl();
+	    //리스트로 반환함
+	    dto.reply = BookReplyDto.replyFindAll(book.getBookReply());
+	    dto.thumbNail =book.getThumbNail();
+	    return dto;
+	}
+
+	//jpa는 반드시 entity를 dto로 변환해서 반환해야함.
+	//book앤티티를 -> bookDto로 변환 
+	public static List<BookDto> findAll(List<Book> books) {
+		List<BookDto> list=new ArrayList<>();
+		for(Book book:books) {
+			BookDto dto = new BookDto();
+			dto.id = book.getId();
+		    dto.title = book.getTitle();
+		    dto.price = book.getPrice();
+		    dto.stock = book.getStock();
+		    dto.description = book.getDescription();
+		    dto.upc = book.getUpc();
+		    dto.productType = book.getProductType();
+		    dto.currentUrl = book.getCurrentUrl();
+		    dto.thumbNail =book.getThumbNail();
+			list.add(dto);
+		}
+		
+		return list;
+	}
+
+	
+	public static BookDto fromEntity(Book book) {
+	    BookDto dto = new BookDto();
+	    dto.id = book.getId();
+	    dto.title = book.getTitle();
+	    dto.price = book.getPrice();
+	    dto.stock = book.getStock();
+	    dto.description = book.getDescription();
+	    dto.upc = book.getUpc();
+	    dto.productType = book.getProductType();
+	    dto.currentUrl = book.getCurrentUrl();
+	    dto.thumbNail=book.getThumbNail();
+	    return dto;
+	}
+
+}

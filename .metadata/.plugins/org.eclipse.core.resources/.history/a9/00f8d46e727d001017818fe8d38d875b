@@ -1,0 +1,85 @@
+package com.coupang.repository;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.coupang.entity.Coupang;
+import com.coupang.querydsl.CoupangRepositoryCustom;
+
+
+public interface CoupangRepository extends JpaRepository<Coupang, Long>,CoupangRepositoryCustom{
+	
+	@Query(value = "SELECT c FROM Coupang c "
+	        + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+	        + "LEFT JOIN ci.coupangUserItemsStatus cs "
+	        + "WHERE cs.sendYn IS NULL "
+	        + "GROUP BY c.id",
+	        countQuery = "SELECT COUNT(DISTINCT c.id) FROM Coupang c "
+	                + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+	                + "LEFT JOIN ci.coupangUserItemsStatus cs "
+	                + "WHERE cs.sendYn IS NULL")
+	Page<Coupang> findAllDesc(Pageable pageable);
+
+	@Transactional(readOnly = true)
+	@Query("SELECT " +
+	       "    CASE " +
+	       "        WHEN COUNT(c) > 0 THEN 1 " +
+	       "        ELSE 0 " +
+	       "    END " +
+	       "FROM Coupang c " +
+	       "WHERE " +
+	       "    (LENGTH(c.productCode) > 0 AND c.productCode IS NOT NULL AND c.productCode = :code)")
+	Integer existsByProductCode(@Param("code") String code);
+//	,@Param("title") String title
+//	OR (c.displayProductName IS NOT NULL AND c.displayProductName = :title)
+	@Query(value = "SELECT c FROM Coupang c "
+            + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+            + "LEFT JOIN ci.coupangUserItemsStatus cs "
+            + "WHERE cs.sendYn IS NOT NULL "
+            + "GROUP BY c.id "
+            + "ORDER BY c.id DESC",
+       countQuery = "SELECT COUNT(DISTINCT c.id) FROM Coupang c "
+            + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+            + "LEFT JOIN ci.coupangUserItemsStatus cs "
+            + "WHERE cs.sendYn IS NOT NULL")
+	Page<Coupang> findAllDescDelete(Pageable pageable);
+
+	@Modifying
+	@Query("DELETE FROM Coupang c WHERE c.id = :id AND c.productCode IN :stockIds")
+	void deleteByIdAndProductCode(@Param("id") long id, @Param("stockIds") List<String> stockIds);
+	
+	@Query(value = "SELECT c FROM Coupang c "
+	        + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+	        + "LEFT JOIN ci.coupangUserItemsStatus cs "
+	        + "WHERE cs.sendYn IS NOT NULL "
+	        + "AND LOWER(c.displayProductName) LIKE LOWER(CONCAT('%', :searchKeyword, '%')) "
+	        + "GROUP BY c.id",
+	        countQuery = "SELECT COUNT(DISTINCT c.id) FROM Coupang c "
+	                + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+	                + "LEFT JOIN ci.coupangUserItemsStatus cs "
+	                + "WHERE cs.sendYn IS NOT NULL "
+	                + "AND LOWER(c.displayProductName) LIKE LOWER(CONCAT('%', :searchKeyword, '%'))")
+	Page<Coupang> findByDisplayProductName(@Param("searchKeyword") String searchKeyword, Pageable pageable);
+
+	@Query("SELECT c FROM Coupang c " +
+		       "LEFT JOIN c.items ci " +
+		       "LEFT JOIN ci.coupangUserItemsStatus cus " +
+		       "WHERE c.currentUrl LIKE CONCAT('%', :brandUrl, '%') " +
+		       "AND cus.sendYn = 'Y'")
+//	@Query("SELECT c FROM Coupang c " +
+//		       "LEFT JOIN c.items ci " +
+//		       "LEFT JOIN ci.coupangUserItemsStatus cus " +
+//		       "WHERE c.currentUrl LIKE CONCAT('%', :brandUrl, '%') " +
+//		       "AND cus.sendYn = 'Y' " +
+//		       "AND c.productCode = '한진 구수한 옥수수 제리 130g (1박스-40개)'")
+	List<Coupang> findAllByBrandAndSendYn(@Param("brandUrl") String brandUrl, PageRequest pageRequest);
+
+}

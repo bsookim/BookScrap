@@ -1,0 +1,40 @@
+package com.scrap.dto;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.scrap.entity.BookReply;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class BookReplyDto {
+
+	private Long id;
+	
+	private String content;
+	
+	public BookReplyDto(BookReply reply) {
+		this.id =reply.getId();
+		this.content =reply.getContent();
+	}
+
+	//jpa는 반드시 엔티티를 dto로 변환해서 반환해야함.
+	//reply엔티티를 -> replyDto로 변환 
+	public static List<BookReplyDto> replyFindAll(List<BookReply> bookReply) {
+		List<BookReplyDto> list= new ArrayList<BookReplyDto>();
+		
+		for(BookReply reply: bookReply) {
+			BookReplyDto dto= new BookReplyDto();
+			dto.id= reply.getId();
+			dto.content = reply.getContent();
+			
+			list.add(dto);
+			
+		}
+		return list;
+	}
+
+}

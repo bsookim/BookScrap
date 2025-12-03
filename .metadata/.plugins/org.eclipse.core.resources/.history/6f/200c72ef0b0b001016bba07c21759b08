@@ -1,0 +1,59 @@
+package com.coupang.hamc;
+
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.springframework.stereotype.Component;
+
+import com.coupang.openapi.sdk.Hmac;
+
+@Component
+public class HmacProductUpdate {
+	private static final String HOST = "api-gateway.coupang.com";
+    private static final String SCHEMA = "https";
+    private static final String ACCESS_KEY = "f20949fb-c3f6-417a-a357-94d4e6f405d6";
+    private static final String SECRET_KEY = "0d4263d854b749ba1742a44d8223c7bf6854d5cc";
+    
+    //아이템 정지 수정
+    public void updateDataToCoupang(Long jsonPayload) {
+    	String method = "PUT";
+        String path = String.format("/v2/providers/seller_api/apis/api/v1/marketplace/vendor-items/%d/sales/stop", jsonPayload);
+
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            URI uri = new URIBuilder()
+                    .setScheme(SCHEMA)
+                    .setHost(HOST)
+                    .setPath(path)
+                    .build();
+
+            String authorization = Hmac.generate(method, path, SECRET_KEY, ACCESS_KEY);
+
+            HttpPut request = new HttpPut(uri);
+            request.addHeader("Authorization", authorization);
+            request.addHeader("Content-Type", "application/json");
+
+            try (CloseableHttpResponse response = client.execute(request)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+                if (statusCode != 200) {
+                	System.err.println("Failed for vendorItemId: " + jsonPayload + " - " + responseBody);
+                    // 여기서 리턴 없이 그냥 계속 실행할 수 있음
+                    return;
+                }
+            }
+        } catch (Exception e) {
+        	e.printStackTrace();
+            // 예외가 발생하더라도 프로그램을 멈추지 않고, 에러만 기록하고 계속 실행
+            System.err.println("Error updating vendorItemId: " + jsonPayload + " - Continuing execution.");
+        } 
+    }
+}
+
+

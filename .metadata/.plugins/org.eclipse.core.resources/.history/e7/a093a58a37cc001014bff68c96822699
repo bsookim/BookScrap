@@ -1,0 +1,36 @@
+spring:
+  jmx:
+    enabled: false
+  web:
+    resources:
+      static-locations: META-INF:/resources, classpath:/resources, classpath:/static, classpath:/static/dist
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/postgres?reWriteBatchedInserts=true
+    username: postgres
+    password: postgres
+  devtools:
+    restart:
+      log-condition-evaluation-delta: false
+  jpa:
+    properties:
+      hibernate:
+        jdbc.batch_size: 200
+        default_batch_fetch_size: 200
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+    hibernate:
+      ddl-auto: update
+    open-in-view: true
+    show-sql: true  # SQL 쿼리 출력
+    format_sql: true  # SQL 쿼리 포맷팅
+  logging:
+    level:
+      org.apache.http: ERROR 
+      hibernate:
+        SQL: DEBUG
+        type:
+        descriptor:
+          sql:
+            BasicBinder: 

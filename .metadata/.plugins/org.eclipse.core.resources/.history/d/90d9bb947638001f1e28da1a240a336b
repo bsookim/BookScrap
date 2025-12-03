@@ -1,0 +1,29 @@
+package com.kick.entity;
+
+import java.util.List;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.kick.CoupangItems;
+
+
+public interface CoupangItemsRepository extends JpaRepository<CoupangItems, Long>{
+//SELECT * FROM coupang_items i where i.coupang_id =:id limit 200", nativeQuery = true
+//	@Query("SELECT i FROM CoupangItems i where i.coupang.id =:id") 
+//	@Query(value="SELECT * FROM coupang_items i where i.coupang_id =:id limit 200", nativeQuery = true)
+//	List<CoupangItems> findByCoupang(@Param("id") Long id); 
+
+	@Query(value="SELECT DISTINCT i FROM CoupangItems i " 
+	           + "LEFT JOIN FETCH i.contents LEFT JOIN FETCH i.attributes LEFT JOIN FETCH i.images LEFT JOIN FETCH i.contents.contentDetails"
+	           + " WHERE i.coupang.id=:id") 
+	List<CoupangItems> findAllByCoupang(@Param("id") Long id,Pageable pageable);
+
+	@Query(value="SELECT DISTINCT i FROM CoupangItems i "
+			+ "LEFT JOIN FETCH i.contents LEFT JOIN FETCH i.attributes LEFT JOIN FETCH i.images LEFT JOIN FETCH i.contents.contentDetails"
+			+ " WHERE i.coupang.id=:id")
+	List<CoupangItems> findAllByCoupangLists(@Param("id") Long id,Pageable pageable);
+	
+}

@@ -1,0 +1,14 @@
+package com.scrap.service;
+
+import com.scrap.repository.BookReplyRepository;
+
+public class BookReplyService {
+
+	private final BookReplyRepository bookReplyRepository;
+	
+	public void save() {
+		// TODO Auto-generated method stub
+		
+	}
+
+}

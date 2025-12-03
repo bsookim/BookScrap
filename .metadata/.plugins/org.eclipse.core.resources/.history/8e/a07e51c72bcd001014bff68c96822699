@@ -1,0 +1,25 @@
+package com.scrap.dto;
+
+import com.scrap.entity.BookCategory;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class BookCategoryDto {
+	
+	private Long id;
+	
+	private String categoryUrl;
+	
+	private String categoryName;
+	
+	public static BookCategoryDto findAll(BookCategory bookCategory) {
+		BookCategoryDto dto= new BookCategoryDto();
+		dto.id=bookCategory.getId();
+		dto.categoryName =bookCategory.getCategoryName();
+		dto.categoryUrl=bookCategory.getCategoryUrl();
+		return dto;
+	}
+}

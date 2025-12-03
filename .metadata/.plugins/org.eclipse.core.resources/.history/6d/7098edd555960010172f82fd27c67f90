@@ -1,0 +1,56 @@
+package com.coupang.scrap.view;
+
+import java.time.Duration;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+
+public class ProFhisingProductViewHandler implements ProductViewHandler {
+
+    @Override
+    public CoupangRequestList handleFromElement(WebDriver driver, WebElement row, CoupangRepository repository) {
+        CoupangRequestList list = new CoupangRequestList();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+        try {
+            // 1️⃣ row 클릭해서 팝업 열기
+            row.click();
+
+            // 2️⃣ 팝업 열릴 때까지 대기
+            WebElement popUp = wait.until(
+                ExpectedConditions.visibilityOfElementLocated(By.cssSelector("div.pop_wrap.pop_list"))
+            );
+
+            // 3️⃣ 팝업 안에서 데이터 읽기 (셀렉터는 실제 사이트 구조에 맞게 조정)
+            String janCode = popUp.findElement(By.cssSelector("#I_JAN")).getText();
+            String productName = popUp.findElement(By.cssSelector("span.product_name")).getText(); // 예시
+            String productPrice = popUp.findElement(By.cssSelector("span.product_price")).getText(); // 예시
+
+            System.out.println("JAN: " + janCode + ", Name: " + productName + ", Price: " + productPrice);
+
+            // repository나 list에 담기
+            // list.add(new Product(...));
+            // repository.save(...);
+
+            // 4️⃣ 팝업 닫기 버튼 클릭
+            WebElement closeBtn = wait.until(
+                ExpectedConditions.elementToBeClickable(By.cssSelector("div.pop_wrap.pop_list div.btn_close"))
+            );
+            closeBtn.click();
+
+            // 5️⃣ 팝업 닫힐 때까지 잠시 대기
+            wait.until(ExpectedConditions.invisibilityOf(popUp));
+
+        } catch (Exception e) {
+            System.out.println("[WARN] handleFromElement 실패: " + e.getMessage());
+        }
+
+        return list;
+    }
+}

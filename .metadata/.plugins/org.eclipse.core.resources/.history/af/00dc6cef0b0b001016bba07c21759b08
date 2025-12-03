@@ -1,0 +1,72 @@
+package com.coupang.hamc;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+
+import com.coupang.openapi.sdk.Hmac;
+
+import java.net.URI;
+import org.apache.http.client.utils.URIBuilder;
+
+public class HmacProudctQuantityUpdate {
+	private static final String HOST = "api-gateway.coupang.com";
+    private static final int PORT = 443;
+    private static final String SCHEMA = "https";
+    private static final String ACCESS_KEY = "f20949fb-c3f6-417a-a357-94d4e6f405d6";
+    private static final String SECRET_KEY = "0d4263d854b749ba1742a44d8223c7bf6854d5cc";
+    
+    /**
+     * 쿠팡 API를 통해 특정 옵션(vendorItemId)의 재고 수량(quantity) 업데이트
+     */
+    public void updateCoupangStock(Long vendorItemId, int quantity) {
+        String method = "PUT";
+        String path = "/v2/providers/seller_api/apis/api/v1/marketplace/vendor-items/" + vendorItemId + "/quantities/" + quantity;
+
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            // 🔹 URI 설정
+            URI uri = new URIBuilder()
+                    .setScheme(SCHEMA)
+                    .setHost(HOST)
+                    .setPort(PORT)
+                    .setPath(path)
+                    .build();
+
+            URIBuilder uriBuilder = new URIBuilder().setPath(path);
+
+            // 🔹 HMAC 인증 토큰 생성
+            String authorization = Hmac.generate(method, uriBuilder.build().toString(), SECRET_KEY, ACCESS_KEY);
+
+            // 🔹 HTTP PUT 요청 생성
+            HttpPut requestPut = new HttpPut(uri);
+            requestPut.addHeader("Authorization", authorization);
+            requestPut.addHeader("Content-Type", "application/json");
+
+            // 🔹 API 요청 실행
+            try (CloseableHttpResponse response = client.execute(requestPut)) {
+                System.out.println("🔹 HTTP 상태 코드: " + response.getStatusLine().getStatusCode());
+                System.out.println("🔹 상태 메시지: " + response.getStatusLine().getReasonPhrase());
+
+                HttpEntity entity = response.getEntity();
+                String responseBody = EntityUtils.toString(entity);
+                System.out.println("🔹 응답 결과: " + responseBody);
+
+                // 🔹 JSON 응답 파싱
+                JSONObject jsonObj = new JSONObject(responseBody);
+                if (jsonObj.has("code") && "SUCCESS".equals(jsonObj.getString("code"))) {
+                    System.out.println("✅ 재고 업데이트 성공! 옵션 ID: " + vendorItemId + ", 변경된 수량: " + quantity);
+                } else {
+                    System.out.println("❌ 재고 업데이트 실패! 오류 메시지: " + jsonObj.getString("message"));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+

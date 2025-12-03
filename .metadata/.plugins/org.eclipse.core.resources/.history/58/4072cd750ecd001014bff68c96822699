@@ -1,0 +1,5 @@
+package com.scrap.dto;
+
+public class BookDto {
+
+}

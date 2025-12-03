@@ -1,0 +1,51 @@
+package com.scrap.controller;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.scrap.dto.BookReplyDto;
+import com.scrap.request.BookReplyRequest;
+import com.scrap.service.BookReplyService;
+
+import lombok.RequiredArgsConstructor;
+
+@RequestMapping("/bookReply")
+@RequiredArgsConstructor
+@RestController
+@CrossOrigin("http://localhost:5173")
+public class BookReplyController {
+	
+	private final BookReplyService bookReplyService; 
+
+	@PostMapping("/{id}/save")
+	public void replySave(@PathVariable("id")Long id, @RequestBody BookReplyRequest bookReplyRequest) {
+		bookReplyService.replySave(id,bookReplyRequest);
+	}
+	
+	@GetMapping("/list")
+	public List<BookReplyDto> replyFindAll() {
+		return bookReplyService.replyFindAll();
+	}
+	
+	@PutMapping("/find/{id}")
+	public void replyUpdate(@PathVariable Long id,@RequestParam
+			("content") String content) {
+		bookReplyService.replyUpdate(id,content);
+	}
+	
+	@DeleteMapping("/delete/{replyId}")
+	public void replyDeleteById(@PathVariable("replyId") Long replyId) {
+		System.out.println(replyId);
+		bookReplyService.replyDeleteById(replyId);
+	}
+}

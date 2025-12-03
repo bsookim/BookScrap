@@ -1,0 +1,21 @@
+package com.scrap.response;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Builder
+@NoArgsConstructor
+public class BooksReplyResponse {
+	
+	private String content;
+	
+	public static BooksReplyResponse booksReplyResponse() {
+		
+		return BooksReplyResponse.builder()
+					.content("test")
+					.build();
+					
+	}
+}

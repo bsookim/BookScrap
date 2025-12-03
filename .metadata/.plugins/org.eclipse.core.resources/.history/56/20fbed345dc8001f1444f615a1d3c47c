@@ -1,0 +1,212 @@
+package com.shop.selenium.dto;
+//
+//import java.time.Duration;
+//import java.util.ArrayList;
+//import java.util.List;
+//import java.util.NoSuchElementException;
+//
+//import org.openqa.selenium.By;
+//import org.openqa.selenium.WebDriver;
+//import org.openqa.selenium.WebElement;
+//import org.openqa.selenium.support.FindAll;
+//import org.openqa.selenium.support.FindBy;
+//import org.openqa.selenium.support.PageFactory;
+//import org.openqa.selenium.support.ui.ExpectedConditions;
+//import org.openqa.selenium.support.ui.WebDriverWait;
+//
+//import lombok.Getter;
+//
+//@Getter
+//public class SCoupangPage {
+//	
+//	private WebDriver driver;
+//
+//	@FindAll({
+//		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpaging "
+//				+ "> p:nth-child(4) > a > img"), //Trycozy
+//		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpaging.ec-base-paginate "
+//				+ "> a:nth-child(4) > img") //Soso
+//	})
+//	private WebElement nextPage;
+//	
+//	@FindAll({
+//			@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpackage > "
+//					+ "div.xans-element-.xans-product.xans-product-listnormal > "
+//					+ "ul > li"),//Trycozy
+//			@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpackage > "
+//					+ "div.xans-element-.xans-product.xans-product-listnormal.ec-base-product.normal > "
+//					+ "ul > li")
+//	})
+//	private List<WebElement> list=new ArrayList<>();
+//	
+//	private List<String> urls = new ArrayList<>();
+//	
+////	#contents > div.xans-element-.xans-search.xans-search-result > ul
+//	//li > div.box
+//	
+////	요소 접근 실패: @FindBy 어노테이션으로 정의한 WebElement 필드가 null 상태이므로,
+////	해당 요소에 접근하거나 조작하려고 하면 NullPointerException이 발생할 수 있습니다.
+////
+////	기능 장애: 페이지 객체 모델을 사용하는 기능이 제대로 동작하지 않습니다. 
+////	예를 들어, click(), sendKeys(), getText() 등과 같은 메서드 호출이 실패합니다.
+//	public SCoupangPage(WebDriver driver) {
+//		this.driver = driver;
+//        PageFactory.initElements(driver, this);
+//	}
+//	
+//	public List<String> productNextPage(int startPage, int endPage) {
+//        List<String> urls = new ArrayList<>();
+//        
+//        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+//        for(int i=1; i<=endPage;i++) {
+//	        try {
+//	            List<WebElement> liElements = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.cssSelector("div.box > a, div > div > div.icon > img")));
+//	
+//	            for (WebElement ele : liElements) {
+//	                try {
+//	                    if (ele.getTagName().equals("a")) {
+//	                        boolean isSoldOut = checkIfSoldOut(ele); // 품절 상태 확인하는 메서드
+//	                        if (!isSoldOut) {
+//	                            String url = ele.getAttribute("href");
+//	                            urls.add(url);
+//	                        }
+//	                    }
+//	                } catch (NoSuchElementException e) {
+//	                    System.out.println("요소를 찾을 수 없습니다. 계속 진행합니다." + e.getMessage());
+//	                }
+//	            }
+//	
+//	        } catch (NoSuchElementException e) {
+//	            System.out.println("페이지에서 요소를 찾을 수 없습니다: " + e.getMessage());
+//	        }
+//        	nextPage.click();
+//		}
+//        return urls;
+//    }
+//
+//    private boolean checkIfSoldOut(WebElement aElement) {
+//        try {
+//            WebElement parentLi = aElement.findElement(By.xpath("ancestor::li")); // `li` 태그로 이동
+//            List<WebElement> imgElements = parentLi.findElements(By.cssSelector("div.icon > img"));
+//            return !imgElements.isEmpty(); // `img` 태그가 있으면 품절
+//        } catch (NoSuchElementException e) {
+//            return false; 
+//        }
+//    }
+//}
+
+import org.openqa.selenium.support.FindAll;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.PageFactory;
+
+import com.google.common.base.Optional;
+
+import lombok.Getter;
+
+import java.util.List;
+import java.util.ArrayList;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoSuchElementException;
+
+@Getter
+public class SCoupangPageDto {
+    
+    private WebDriver driver;
+
+    // 페이지 넘김 버튼을 찾는 여러 CSS 선택자를 하나로 관리
+    @FindAll({
+        @FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpaging > p:nth-child(4) > a > img"), // Trycozy
+        @FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpaging.ec-base-paginate > a:nth-child(4)"), // Soso,JanCompany
+//        @FindBy(css = "#contents > div.xans-element-.xans-search.xans-search-paging.ec-base-paginate > a:nth-child(4)")
+        @FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-listing > div > div > div.col-sm-9 > sip-page-slot > sip-product-list > div > section > div.cx-sorting.bottom > div.cx-pagination.ng-star-inserted > sip-pagination > ul > li:nth-child(4) > a")
+    })
+    private Optional<WebElement> nextPage;
+
+    // 제품 리스트 항목을 찾는 여러 CSS 선택자를 하나로 관리
+    @FindAll({
+        @FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpackage > div.xans-element-.xans-product.xans-product-listnormal > ul > li"), // Trycozy
+        @FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-normalpackage > div.xans-element-.xans-product.xans-product-listnormal.df-prl-wrap.df-prl-setup > ul > li"),
+        @FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-listing > div > div > div.col-sm-9 > sip-page-slot > sip-product-list > div > section > div.ng-star-inserted > div > ul > sip-product-list-item > li"),
+        @FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-listing > div.col-sm-9.search-page-container.ng-star-inserted > div > sip-product-search-results > sip-page-slot > sip-product-list > div > section > div.ng-star-inserted > div > ul > sip-product-list-item > li")
+    })
+    private List<WebElement> productList;
+
+    // 크롤링된 URL을 저장하는 리스트
+    private List<String> urls = new ArrayList<>();
+
+    public SCoupangPageDto(WebDriver driver) {
+        this.driver = driver;
+        PageFactory.initElements(driver, this); // PageFactory로 필드 초기화
+    }
+
+    // 페이지를 순차적으로 넘기면서 제품 URL을 추출하는 메서드
+    public List<String> productNextPage(int startPage, int endPage) {
+        for (int i = startPage; i <= endPage; i++) {
+        	if (nextPage != null) {
+	        	try {
+	                // 제품 리스트에서 품절되지 않은 제품의 URL을 추출
+	                for (WebElement product : productList) {
+	                    try {
+	                        WebElement anchorTag = product.findElement(By.cssSelector("div > a, div > div > a"));
+	                        boolean isSoldOut = checkIfSoldOut(product); // 품절 여부 확인
+	                        if (!isSoldOut) {
+	                            String url = anchorTag.getAttribute("href");
+	                            urls.add(url); // 품절되지 않은 경우 URL 추가
+	                        }
+	                    } catch (NoSuchElementException e) {
+	                        System.out.println("요소를 찾을 수 없습니다. 계속 진행합니다." + e.getMessage());
+	                    }
+	                }
+	                ((WebElement) nextPage).click();
+	            } catch (NoSuchElementException e) {
+	                System.out.println("페이지에서 요소를 찾을 수 없습니다: " + e.getMessage());
+	            }
+            }else {
+            	try {
+	                // 제품 리스트에서 품절되지 않은 제품의 URL을 추출
+	                for (WebElement product : productList) {
+	                    try {
+	                        WebElement anchorTag = product.findElement(By.cssSelector("div > a, div > div > a"));
+	                        boolean isSoldOut = checkIfSoldOut(product); // 품절 여부 확인
+	                        if (!isSoldOut) {
+	                            String url = anchorTag.getAttribute("href");
+	                            urls.add(url); // 품절되지 않은 경우 URL 추가
+	                        }
+	                    } catch (NoSuchElementException e) {
+	                        System.out.println("요소를 찾을 수 없습니다. 계속 진행합니다." + e.getMessage());
+	                    }
+	                }
+	            } catch (NoSuchElementException e) {
+	                System.out.println("페이지에서 요소를 찾을 수 없습니다: " + e.getMessage());
+	            }
+            }
+        }
+        return urls; // 결과 URL 리스트 반환
+    }
+    
+    private boolean checkIfSoldOut(WebElement productElement) {
+        try {
+            List<WebElement> soldOutIcons = productElement.findElements(By.cssSelector("div > img, div.product-image > div > div"));
+
+            for (WebElement icon : soldOutIcons) {
+                String altValue = icon.getAttribute("alt");
+                // 품절을 나타내는 alt 값이 있는지 체크
+                if (altValue != null && altValue.contains("품절")) {
+                    return true; // 품절 이미지가 있는 경우
+                }
+                
+                String divValue = icon.getText(); // div 내부 텍스트
+                if (divValue != null && divValue.contains("품절")) {
+                    return true; // div 텍스트에 "품절"이 포함된 경우
+                }
+            }
+            return false; // 품절 이미지가 없는 경우
+        } catch (NoSuchElementException e) {
+            return false; 
+        }
+    }
+}

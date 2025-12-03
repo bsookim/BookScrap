@@ -1,0 +1,33 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/home';
+import List from './pages/list';
+import Detail from './pages/detail';
+import Update from './pages/update';
+import Category from './pages/category';
+
+const Layout = ({ children }) => {
+  return (
+    <div style={{ display: 'flex' }}>
+      <Category />
+      <div style={{ flex: 1, padding: '20px' }}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/list" element={<Layout><List /></Layout>} />
+        <Route path="/detail/:id" element={<Layout><Detail /></Layout>} />
+        <Route path="/update/:id" element={<Layout><Update /></Layout>} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;

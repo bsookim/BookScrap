@@ -1,0 +1,49 @@
+package com.scrap.entity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class Books {
+
+    @Id 
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(length = 10000)
+    private String title;
+
+    @Column(length = 10000)
+    private String price;
+
+    @Column(length = 10000)
+    private String stock;
+
+    @Column(length = 10000) 
+    private String descpription;
+
+    @Column(length = 10000)
+    private String upc;
+
+    @Column(length = 10000)
+    private String productType;
+
+    @Column(length = 10000)
+    private String currnetUrl;
+
+    @Column(length = 10000)
+    private String thumbNail;
+
+    @ElementCollection
+    @CollectionTable(name = "books_category", joinColumns = @JoinColumn(name = "books_id"))
+    @Column(name = "category") // DB 컬럼명 정확히 지정
+    private List<String> category = new ArrayList<>();
+}

@@ -1,0 +1,63 @@
+package com.coupang.scrap.list;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+import java.util.List;
+
+public class EchobelleProductListPage implements ProductListPage {
+
+    private final WebDriver driver;
+    private final String initialUrl;
+    private static final String MORE_BUTTON_SELECTOR = "input[id='more'][type='button'][value*='더 보기']";
+
+    public EchobelleProductListPage(WebDriver driver, String initialUrl, int endPage) {
+        this.driver = driver;
+        this.initialUrl = initialUrl;
+    }
+
+    // 모든 '더 보기' 클릭 후 Row 반환
+    public List<WebElement> loadAllProductRows() {
+        driver.get(initialUrl);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        while (true) {
+            try {
+                WebElement moreButton = wait.until(
+                        ExpectedConditions.elementToBeClickable(By.cssSelector(MORE_BUTTON_SELECTOR))
+                );
+
+                if (moreButton.isDisplayed() && moreButton.isEnabled()) {
+                    int currentCount = driver.findElements(By.cssSelector("tr.list-body")).size();
+                    moreButton.click();
+                    System.out.println("'더 보기' 버튼 클릭 완료!");
+                    // 새로운 Row 로드될 때까지 대기
+                    wait.until(d -> driver.findElements(By.cssSelector("tr.list-body")).size() > currentCount);
+                } else {
+                    break;
+                }
+            } catch (Exception e) {
+                System.out.println("'더 보기' 버튼 없음 또는 로딩 완료");
+                break;
+            }
+        }
+
+        // 버튼 다 누른 후 모든 Row 반환
+        return driver.findElements(By.cssSelector("tr.list-body"));
+    }
+
+    @Override
+    public List<WebElement> getProductLinks() {
+        return driver.findElements(By.cssSelector("tr.list-body"));
+    }
+
+    @Override
+    public List<String> collectAllProductLinks(WebDriver driver, int startPage, int endPage) {
+        // Echobelle은 URL 기반이 아니므로 비워둠
+        return List.of();
+    }
+}

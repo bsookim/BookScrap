@@ -1,0 +1,195 @@
+package com.shop.service;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.shop.Coupang;
+import com.shop.CoupangItems;
+import com.shop.common.HmacProductCreation;
+import com.shop.common.JsonUtil;
+import com.shop.dto.CoupangDto;
+import com.shop.entity.CoupangAttributesRepository;
+import com.shop.entity.CoupangImagesRepository;
+import com.shop.entity.CoupangItemsRepository;
+import com.shop.entity.CoupangRepository;
+import com.shop.selenium.dto.SCoupangDto;
+import com.shop.selenium.dto.SCoupangLoginDto;
+import com.shop.selenium.dto.SCoupangPage;
+import com.shop.selenium.util.ExtensionUtils;
+import com.shop.selenium.util.ImageUtils;
+
+import lombok.RequiredArgsConstructor;
+
+@Transactional
+@Service
+@RequiredArgsConstructor
+public class CoupangService {
+	//쿠팡
+	@Autowired CoupangRepository coupangRepository; 
+	@Autowired CoupangItemsRepository coupangItemsRepository;
+	@Autowired CoupangImagesRepository coupangImagesRepository;
+	@Autowired CoupangAttributesRepository coupangAttributesRepository;
+	@Autowired HmacProductCreation hmacProductCreation;
+	
+	@Value("${file.thmb-dir}")
+    private String thmbDir;
+	
+	@Value("${file.detail-dir}")
+    private String detailDir;
+	
+	
+//	firstResult/maxResults specified with collection fetch; applying in memory 해결
+	@Transactional
+	public Page<CoupangDto>  getCoupangDto(){
+		//1300개 상품이 옵션이  155
+//		1,55
+		Pageable pageable = PageRequest.of(6, 25);
+        
+		Page<Coupang> coupangPage = coupangRepository.findAll(pageable);
+        //721부터 조심썸네일 다날리고 다시 입력
+        //ENTITYGRAPH안써도 MEMORY문제 해결가능함 아래처럼 해결함 난 
+        //map은 결과를 반환하는데 있어서 foreach를 사용함
+        //무조건 ITEMS를 기준으로 UPDATE를 쳐라 COUPANG으로 치지마
+		//영속성 컨텍스트 사용중에 update 하지마셈
+        Pageable itemLimit = PageRequest.of(0, 200);
+        List<Long> coupangIds = new ArrayList<>();
+        List<Long> coupangItemIds = new ArrayList<>();
+        List<CoupangDto> dtoList = coupangPage.getContent().stream()
+							        .map(coupang -> {
+							        	if(coupang.getItems() != null && !coupang.getItems().isEmpty()) {
+							                List<CoupangItems> coupangItems = coupangItemsRepository.findAllByCoupangId(coupang.getId(), itemLimit);
+							                
+							                coupangIds.add(coupang.getId());
+							                for(CoupangItems ci : coupangItems) {
+							                    coupangItemIds.add(ci.getId());
+							                }
+							                //ATTRIBUTE를 정렬해야됨  
+							                return new CoupangDto(coupang, coupangItems);
+							            }
+							            return new CoupangDto(coupang, Collections.emptyList());
+							        })
+							        .collect(Collectors.toList());
+        	
+        //아니 버크update 하려면 이런식으로 해야됨 ; 
+        //왜냐면 조회중에 update를 하면 영속성컨텍스트 때문에 조회됐을때 영속성 컨텍스트에 있는 데이터들이 날라감 
+        // 그래서 id값을 빼서 bulkupdate를 해야함.
+        //그리고 clearAutomatically = true 영속성 컨텍스트 초기화 끝. 
+    	for(Long id : coupangIds) {
+    		
+    		for(Long itemId : coupangItemIds) {
+    			if(coupangItemIds!=null && itemId != 0)
+    				
+    			coupangItemsRepository.bulkUpdate(id, itemId);
+    		}
+    	}
+    	
+	    for (CoupangDto dto : dtoList) {
+	    	if (dto.getItems() != null && !dto.getItems().isEmpty()) {
+	            String json = JsonUtil.convertListToJson(dto);
+	            hmacProductCreation.sendDataToCoupang(json);
+	            try {
+	                TimeUnit.SECONDS.sleep(1); 
+	            } catch (InterruptedException e) {
+	                Thread.currentThread().interrupt();
+	            }
+	        }
+	    }
+	    System.out.println("끝");
+        return new PageImpl<>(dtoList, pageable, coupangPage.getTotalElements());
+
+	}
+
+
+	public void loginUrl(String username, String password,String url, int startPage, int endPage) {
+			WebDriver driver = new EdgeDriver();
+				SCoupangLoginDto login=new SCoupangLoginDto(driver);
+			  	login.click(username, password,url);
+			  	driver.get(url);
+			  	productPage(driver,startPage,endPage);
+//	      		driver.quit();
+	}	
+	
+	private void productPage(WebDriver driver, int startPage, int endPage)  {
+		SCoupangPage page = new SCoupangPage(driver);
+		page.productNextPage(startPage,endPage);
+		
+		for(String url : page.getUrls()) {
+			driver.navigate().to(url);
+			SCoupangDto dto= new SCoupangDto(driver);
+
+			for(WebElement product : dto.getProductList()) {
+				
+				if(product.getText().contains("상품코드")) {
+					String productCode = product.getText();
+					productCode = productCode.replace("상품코드 ", "");
+//					System.out.println(dto.getTitle().getText());
+//					System.out.println(dto.getPrice().getText());
+//					System.out.println(productCode);
+				}
+			}
+			
+			StringBuilder selectBoxEnabled= new StringBuilder();
+			int size = dto.getSelectBox().size();
+			String repeatedString = "F|".repeat(size);
+			selectBoxEnabled.append(repeatedString);
+			System.out.println(selectBoxEnabled.toString());
+			
+			for(WebElement thmb : dto.getThumbLists()) {
+				String imageUrl = thmb.getAttribute("src");
+			   
+				String thmbUrl = ExtensionUtils.replaceWebpExtension(imageUrl, "gif");
+
+			    try {
+			        ImageUtils.saveThumbImage(thmbUrl, thmbDir);
+			    } catch (IOException e) {
+			        e.printStackTrace();
+			    }				
+			}
+			
+			for(WebElement detailImage : dto.getDetailImageLists()) {
+				if (detailImage.getTagName().equals("img")) {
+	                ImageUtils.scrollToElement(driver,detailImage);
+	                String imgUrl = detailImage.getAttribute("src");
+	                String extension = imgUrl.substring(imgUrl.lastIndexOf(".") + 1);
+	                if(extension.equals("jpg")||extension.equals("gif")||extension.equals("png")||extension.equals("jpeg")) {
+		            	try {
+							ImageUtils.saveDetailImage(imgUrl, detailDir);
+						} catch (MalformedURLException e) {
+							e.printStackTrace();
+						}
+	                }
+				}
+			}
+			
+		}
+	}
+	
+	
+}
+ 

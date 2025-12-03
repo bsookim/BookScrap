@@ -1,0 +1,63 @@
+package com.scrap.service;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.By;
+import org.openqa.selenium.By.ByCssSelector;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Wait;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.scrap.data.BooksData;
+import com.scrap.entity.Book;
+import com.scrap.pom.SeleniumBookCategory;
+import com.scrap.pom.SeleniumBook;
+import com.scrap.repository.BookCategoryRepository;
+import com.scrap.repository.BooksRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class BookService {
+
+	private final BooksRepository booksRepository; 
+	
+	private final BookCategoryRepository bookCategoryRepository;
+	
+	public void booksSave(String currentUrl) {
+	    WebDriver driver = new ChromeDriver();
+
+	    try {
+	        driver.get(currentUrl);
+	        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+	        WebElement body = driver.findElement(By.cssSelector("body"));
+	        wait.until(ExpectedConditions.visibilityOf(body));
+
+	        SeleniumBookCategory sbc = new SeleniumBookCategory(driver);
+	        SeleniumBooks sb = new SeleniumBooks();
+
+	        BooksData bookData = sb.booksHref(driver, sbc);
+	        List<Books> books = sb.booksDetailPage(driver, bookData.getUrls());
+
+	        bookData.getBookList().addAll(books);
+	         
+	        bookCategoryRepository.saveAll(bookData.getBookCategoryList());
+	        booksRepository.saveAll(bookData.getBookList());
+	    } finally {
+	        driver.quit();
+	    }
+	}
+	
+}

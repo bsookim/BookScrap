@@ -1,0 +1,44 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import "../styles/category.css";
+
+const Category = () => {
+  const [category, setCategory] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCategory = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/category/list");
+        setCategory(res.data);
+      } catch (err) {
+        console.error("조회 실패:", err);
+      }
+    };
+    
+    fetchCategory();
+  }, []);
+
+  const handleClick = (categoryName) => {
+    navigate(`/list?page=0&category=${categoryName}`);
+    };
+
+  return (
+    <div className="category-sidebar">
+      <ul>
+        {category.map((c) => (
+          <li
+            key={c.id}
+            onClick={() => handleClick(c.categoryText)}
+            className="category-item"
+          >
+            {c.categoryText}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Category;

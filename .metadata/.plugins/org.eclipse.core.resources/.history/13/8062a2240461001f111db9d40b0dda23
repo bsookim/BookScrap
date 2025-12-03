@@ -1,0 +1,127 @@
+package com.shop.dto;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.shop.CoupangAttributes;
+import com.shop.CoupangItems;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+public class CoupangItemsDto {
+//	private Long id;
+	
+	private String itemName;
+	//O
+	private int originalPrice;
+	//O
+	private int salePrice;
+	//O
+	private int maximumBuyCount;
+	//O
+	private int maximumBuyForPerson;
+	//O
+	private int maximumBuyForPersonPeriod;
+	//O
+	private int outboundShippingTimeDay;
+	//O
+	private int unitCount;
+	//O
+	private String adultOnly;
+	//O
+	private String taxType;
+	//O
+	private String parallelImported;
+	//O
+	private String overseasPurchased;
+	//O
+	private Boolean pccNeeded;
+	
+	private List<CoupangImagesDto> images = new ArrayList<>();
+
+	//infinite recursion 해결 방법
+	private List<CoupangAttributesDto> attributes= new ArrayList<>();
+	
+	private List<CoupangContentsDto> contents = new ArrayList<>();
+
+	private List<String> searchTags = new ArrayList<>();
+
+	private CoupangDto coupangDto = new CoupangDto();
+	
+	public CoupangItemsDto(CoupangItems item) { 
+//		this.id							= item.getId();
+		this.itemName 					= item.getItemName();
+		this.originalPrice				= item.getOriginalPrice();
+		this.salePrice					= item.getSalePrice();
+		this.maximumBuyCount			= item.getMaximumBuyCount();
+		this.maximumBuyForPerson		= item.getMaximumBuyForPerson();
+		this.maximumBuyForPersonPeriod	= item.getMaximumBuyForPersonPeriod();
+		this.outboundShippingTimeDay 	= item.getOutboundShippingTimeDay();
+		this.unitCount					= item.getUnitCount();
+		this.adultOnly					= item.getAdultOnly();
+		this.taxType					= item.getTaxType();
+		this.parallelImported			= item.getParallelImported();
+		this.overseasPurchased			= item.getOverseasPurchased();
+		this.pccNeeded					= item.getPccNeeded();
+		this.images						= item.getImages().stream().map(CoupangImagesDto::new).collect(Collectors.toList());
+		//정렬필요
+		this.attributes 				= item.getAttributes().stream().sorted((attribute, attribute2) -> attribute.getId().compareTo(attribute2.getId())).map(CoupangAttributesDto::new).collect(Collectors.toList());
+		this.contents					= item.getContents().stream().map(CoupangContentsDto::new).collect(Collectors.toList());
+		searchTags.add("커버핏");
+		searchTags.add("트라이코지");
+		searchTags.add("갤럭시");
+		searchTags.add("휴대폰케이스아이폰15프로");
+		searchTags.add("아이폰휴대폰케이스15promax");
+		searchTags.add("갤럭시s24 케이스");
+		searchTags.add("갤럭시s23 케이스");
+		searchTags.add("갤럭시s22 케이스");
+		searchTags.add("갤럭시s21 케이스");
+		searchTags.add("갤럭시s24케이스정품");
+		searchTags.add("갤럭시s10 5g 케이스");
+		searchTags.add("갤럭시s10케이스");
+		searchTags.add("아이폰 14 pro 케이스");
+		searchTags.add("아이폰 13 pro 케이스");
+		searchTags.add("아이폰14pro케이스정품");
+		searchTags.add("아이폰14pro");
+		searchTags.add("아이폰15pro케이스");
+		searchTags.add("s23 갤럭시 케이스");
+		searchTags.add("s22 갤럭시 케이스");
+		
+		
+		this.searchTags					= searchTags.stream().map(String::new).collect(Collectors.toList());
+	}
+
+	//이거해야함.
+	public CoupangItemsDto(CoupangItemsDto item) { 
+//		this.id							= item.getId();
+		this.itemName 					= item.getItemName();
+		this.originalPrice				= item.getOriginalPrice();
+		this.salePrice					= item.getSalePrice();
+		this.maximumBuyCount			= item.getMaximumBuyCount();
+		this.maximumBuyForPerson		= item.getMaximumBuyForPerson();
+		this.maximumBuyForPersonPeriod	= item.getMaximumBuyForPersonPeriod();
+		this.outboundShippingTimeDay 	= item.getOutboundShippingTimeDay();
+		this.unitCount					= item.getUnitCount();
+		this.adultOnly					= item.getAdultOnly();
+		this.taxType					= item.getTaxType();
+		this.parallelImported			= item.getParallelImported();
+		this.overseasPurchased			= item.getOverseasPurchased();
+		this.pccNeeded					= item.getPccNeeded();
+		this.images						= item.getImages();//정렬필요
+		this.attributes 				= item.getAttributes().stream()
+			    .sorted((attribute1, attribute2) -> attribute1.getAttributeTypeName().compareTo(attribute2.getAttributeTypeName()))
+			    .map(CoupangAttributesDto::new)
+			    .collect(Collectors.toList());
+				this.contents					= item.getContents();
+		this.searchTags					= searchTags.stream().map(String::new).collect(Collectors.toList());
+	}
+}

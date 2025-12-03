@@ -1,0 +1,29 @@
+package com.scrap.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public class BookDto {
+	
+	private Long id;
+	
+	private String title;
+	
+	private String price;
+	
+	private String stock;
+	
+	private String descpription;
+	
+	private String upc;
+	
+	private String productType;
+	
+	private String currnetUrl;
+	
+	
+}

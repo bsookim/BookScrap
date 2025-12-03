@@ -1,0 +1,213 @@
+package com.coupang.selenium.dto;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindAll;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.utils.ImageUtils;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@NoArgsConstructor
+@Getter
+@Setter
+@AllArgsConstructor
+public class SCoupangCafeDto {
+
+	private static final String DETAIL_URL = "https://qudtn0295.cafe24.com/detailImage147/";
+
+	private static final String THUMB_URL = "https://qudtn0295.cafe24.com/web/product/big/thmb147/";
+	 
+	private WebDriver driver;
+	
+	@FindAll({
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > div.infoArea > h2"),
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail.section > div.detailArea > div.infoArea.ez-discount-tag-on > div.headingArea > h1"),
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail.section > div.detailArea > div.infoArea > div.headingArea > h1"),
+		@FindBy(css = "#df-product-detail > div > div.infoArea-wrap > div > div > div.scroll-wrapper.df-detail-fixed-scroll.scrollbar-macosx > div.df-detail-fixed-scroll.scrollbar-macosx.scroll-content > div.headingArea > h2"),
+	})
+	private WebElement title;
+
+	@FindAll({
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > div.infoArea > div.xans-element-.xans-product.xans-product-detaildesign > table > tbody > tr"),
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail.section > div.detailArea > div.infoArea.ez-discount-tag-on > div.xans-element-.xans-product.xans-product-detaildesign > table > tbody > tr"),
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail.section > div.detailArea > div.infoArea > div.xans-element-.xans-product.xans-product-detaildesign > table > tbody > tr"),
+		@FindBy(css = "#df-product-detail > div > div.infoArea-wrap > div > div > div.scroll-wrapper.df-detail-fixed-scroll.scrollbar-macosx > div.df-detail-fixed-scroll.scrollbar-macosx.scroll-content > div.xans-element-.xans-product.xans-product-detaildesign > table > tbody > tr")
+	})
+	List<WebElement> infoArea= new ArrayList<>();
+
+	@FindAll({
+		@FindBy(css="#mainImg > li > span > img"),
+	})
+	private List<WebElement> thumbLists = new ArrayList<>();
+	
+	@FindAll({
+		@FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-details-page > sip-product-details > div > sip-product-image-panel > div > div > div.gallery-carousel-wrapper > div > sip-carousel > owl-carousel-o > div > div.owl-stage-outer.ng-star-inserted > owl-stage > div > div > div > div > a > div > sip-media > picture > img"),
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail.section > div.detailArea > div.xans-element-.xans-product.xans-product-image.imgArea > div > div.xans-element-.xans-product.xans-product-addimage.listImg > div > ul > li > img"),
+		@FindBy(css = "#subImg > div > div.item.swiper-slide.swiper-slide-prev > span > img")
+	})
+	private List<WebElement> thumbSubLists = new ArrayList<>();
+	
+	@FindAll({
+		@FindBy(css = "#prdDetail *"),
+		@FindBy(css = "#tbContent *")
+	})
+	private List<WebElement> detailImageLists =new ArrayList<>();
+	
+	@FindAll({
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > div.infoArea > table > tbody > tr > td > select"),
+		@FindBy(css = "#df-product-detail > div > div.infoArea-wrap > div > div > div.scroll-wrapper.df-detail-fixed-scroll.scrollbar-macosx > div.df-detail-fixed-scroll.scrollbar-macosx.scroll-content > ul > li > ul > li > select"),
+		@FindBy(css = "#optSel span.ui-selectmenu-button"),
+	})
+	private List<WebElement> selectBox = new ArrayList<>();
+
+	private List<String> iframeUrls = new ArrayList<>();
+	
+	public SCoupangCafeDto(WebDriver driver) {
+		this.driver = driver;
+        PageFactory.initElements(driver, this);
+	}
+	
+	public FluentWait<WebDriver> getFluentWait(int timeoutSeconds) {
+	    FluentWait<WebDriver> wait = new FluentWait<>(driver)
+	            .withTimeout(Duration.ofSeconds(timeoutSeconds))
+	            .pollingEvery(Duration.ofMillis(1))
+	            .ignoring(NoSuchElementException.class);
+	    return wait;
+	}
+	
+	public WebElement waitForVisibilityOfElement(WebDriver driver, WebElement element, int timeoutSeconds) {
+	    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+	    return wait.until(ExpectedConditions.visibilityOf(element));
+	}
+
+	public String getIframeUrls(Document doc, StringBuilder sbIframeName) {
+		Elements iframeElements = doc.select("#prdDetail > div > div > iframe");
+        for (Element iframe : iframeElements) {
+            String iframeSrc = iframe.attr("src");
+            if (!iframeSrc.isEmpty()) {
+            	sbIframeName.append("<iframe src=\"").append(iframeSrc).append("\"></iframe><br/>\n");
+            }
+        }
+
+        return sbIframeName.toString();
+	}
+	
+	public String getThmbImageUrls(StringBuilder sbThmbFileName, String thmbDir, FluentWait<WebDriver> wait) {
+	    for (WebElement thmb : thumbLists) {
+	        try {
+	            wait.until(driver -> {
+	                String src = thmb.getAttribute("src");
+	                return src != null && !src.isEmpty();
+	            });
+
+	            String imageUrl = thmb.getAttribute("src");
+	            String uniqueThmbFileName = ImageUtils.saveThumbImage(imageUrl, thmbDir);
+	            sbThmbFileName.append(THUMB_URL).append(uniqueThmbFileName);
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        } catch (TimeoutException e) {
+	            System.out.println("썸네일 이미지 로딩 실패: " + e.getMessage());
+	        }
+	    }
+
+	    return sbThmbFileName.toString();
+	}
+
+	public String getDetailImageUrls(StringBuilder sbDetailFileName, String detailDir, FluentWait<WebDriver> wait) throws IOException {
+	    for (WebElement detailImage : detailImageLists) {
+	        if ("img".equals(detailImage.getTagName())) {
+	            try {
+	                ImageUtils.scrollToElement(driver, detailImage);
+
+	                wait.until(driver -> {
+	                    String src = detailImage.getAttribute("src");
+	                    return src != null && !src.isEmpty();
+	                });
+
+	                JavascriptExecutor js = (JavascriptExecutor) driver;
+	                boolean isImageOk = (Boolean) js.executeScript(
+	                    "return arguments[0].complete && arguments[0].naturalWidth > 0;", detailImage
+	                );
+
+	                if (isImageOk) {
+	                    String imgUrl = detailImage.getAttribute("src");
+	                    String uniqueDetailFileName = ImageUtils.saveDetailImage(imgUrl, detailDir);
+	                    sbDetailFileName.append("<img src=\"" + DETAIL_URL + uniqueDetailFileName + "\" />");
+	                } else {
+	                    System.out.println("깨진 이미지임");
+	                }
+
+	            } catch (TimeoutException e) {
+	                System.out.println("상세 이미지 로딩 시간 초과: " + e.getMessage());
+	            } catch (MalformedURLException | FileNotFoundException e) {
+	                System.out.println("파일 저장 실패: " + e.getMessage());
+	            }
+	        }
+	    }
+
+	    return sbDetailFileName.toString();
+	}
+
+
+	
+	public String getDeliveryInformation(StringBuilder sbDetailFileName) {
+		
+		sbDetailFileName.append("<table style='width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:15px; margin:20px 0;'>");
+		
+		sbDetailFileName.append("<thead>")
+		    .append("<tr style='background-color:#4CAF50; color:#ffffff; text-align:center;'>")
+		    .append("<th style='padding:12px; border:1px solid #ddd; text-transform:uppercase;' colspan='2'>배송 정보</th>")
+		    .append("</tr>")
+		    .append("</thead>");
+		
+		sbDetailFileName.append("<tbody>");
+		
+		sbDetailFileName.append("<tr style='background-color:#ffffff; text-align:center;'>")
+		    .append("<td style='padding:12px; border:1px solid #ddd; color:#333;' colspan='2'>결제일 다음 날부터 <span style='color:#007bc7; font-weight:bold;'>3일 이내 발송</span>됩니다.</td>")
+		    .append("</tr>");
+		
+		sbDetailFileName.append("<tr style='background-color:#f9f9f9; text-align:center;'>")
+		    .append("<td style='padding:12px; border:1px solid #ddd; color:#333;' colspan='2'>공급사 재고 사정에 따라 품절될 수 있으며, 가능한 빠르게 안내 도와드리겠습니다.</td>")
+		    .append("</tr>");
+		
+		sbDetailFileName.append("<tr style='background-color:#ffffff; text-align:center;'>")
+		    .append("<td style='padding:12px; border:1px solid #ddd; color:#333;' colspan='2'>배송을 위한 개인정보 제공이 발생될 수 있으므로 동의하시는 경우에만 구매 부탁드립니다.</td>")
+		    .append("</tr>");
+		
+		sbDetailFileName.append("<tr style='background-color:#f9f9f9; text-align:center;'>")
+		    .append("<td style='padding:12px; border:1px solid #ddd; color:#333;' colspan='2'>초기 불량, 오배송의 경우 <span style='color:#007bc7; font-weight:bold;'>반품 및 환불 가능</span>하며 판매자가 배송비를 부담합니다.</td>")
+		    .append("</tr>");
+		
+		sbDetailFileName.append("<tr style='background-color:#ffffff; text-align:center;'>")
+		    .append("<td style='padding:12px; border:1px solid #ddd; color:#333;' colspan='2'>단순 변심, 주문 오류 등 고객의 사유로 인한 반품 및 환불은 구매자가 배송비를 부담합니다. 단순 변심 팩개봉 자제 부탁드립니다. </td>")
+		    .append("</tr>");
+		
+		sbDetailFileName.append("</tbody>");
+		sbDetailFileName.append("</table>");
+		
+		return sbDetailFileName.toString();
+	}
+
+}

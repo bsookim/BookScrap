@@ -1,0 +1,7 @@
+package com.coupang.returns.dto.create;
+
+@Getter
+public class ReturnCenterCodesCreate {
+	
+	private String returnCenterCode;
+}	

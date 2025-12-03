@@ -1,0 +1,14 @@
+package com.scrap.service;
+
+import java.util.List;
+
+import com.scrap.dto.BookReplyDto;
+
+public class BookCategoryService {
+
+	public List<BookReplyDto> categoryFindAll() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

@@ -1,0 +1,17 @@
+package com.coupang.scrap.view;
+
+import org.openqa.selenium.WebDriver;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+
+public class ProFishingProductViewHandler implements ProductViewHandler{
+
+	@Override
+	public CoupangRequestList handle(WebDriver driver, String url, CoupangRepository coupangRepository) {
+		System.out.println("@@@@@@@@@@@@@@@@@@@@@@@");
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

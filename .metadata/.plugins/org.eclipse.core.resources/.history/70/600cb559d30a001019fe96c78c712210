@@ -1,0 +1,5 @@
+package com.coupang.hamc.client;
+
+public interface CoupangCreationClient {
+
+}

@@ -1,0 +1,54 @@
+package com.coupang.scrap.view;
+
+import java.time.Duration;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+
+public class ProFhisingProductViewHandler implements ProductViewHandler {
+
+    @Override
+    public CoupangRequestList handleFromElement(WebDriver driver, WebElement row, CoupangRepository repository) {
+        CoupangRequestList list = new CoupangRequestList();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+        try {
+            // 1. row 클릭해서 팝업 열기
+            row.click();
+
+            // 2. 팝업이 열릴 때까지 대기
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("div.pop_wrap.pop_list.on")));
+
+            // 3. 팝업에서 데이터 읽기 (셀렉터는 실제 사이트 구조에 맞게 조정)
+            String janCode = driver.findElement(By.cssSelector("#I_JAN")).getText();
+            String productName = driver.findElement(By.cssSelector("#I_NAME")).getText();
+            String productPrice = driver.findElement(By.cssSelector("#I_PRICE")).getText();
+
+            System.out.println("JAN: " + janCode + ", NAME: " + productName + ", PRICE: " + productPrice);
+
+            // 4. 데이터 repository나 list에 담기
+            // 예시: list.addProduct(janCode, productName, productPrice, ...);
+            // repository.save(...); 필요시 사용
+
+            // 5. 팝업 닫기
+            WebElement closeBtn = wait.until(
+                ExpectedConditions.elementToBeClickable(By.cssSelector("div.pop_wrap.pop_list.on div.btn_close"))
+            );
+            closeBtn.click();
+
+            // 팝업이 완전히 닫힐 때까지 대기
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("div.pop_wrap.pop_list.on")));
+
+        } catch (Exception e) {
+            System.out.println("[WARN] handleFromElement 실패: " + e.getMessage());
+        }
+
+        return list;
+    }
+}

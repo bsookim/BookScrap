@@ -1,0 +1,19 @@
+package com.scrap.service;
+
+import org.springframework.stereotype.Service;
+
+import com.scrap.repository.BookReplyRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Service
+public class BookReplyService {
+
+	private final BookReplyRepository bookReplyRepository;
+	
+	public void save() {
+		bookReplyRepository.save(null);
+	}
+
+}

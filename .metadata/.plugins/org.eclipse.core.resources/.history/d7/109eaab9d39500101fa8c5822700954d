@@ -1,0 +1,150 @@
+package com.coupang.scrap.view;
+
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.ai.OpenAiClient;
+import com.coupang.cloudflare.CloudflareImageUploader;
+import com.coupang.entity.Coupang;
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+import com.coupang.scrap.dto.CoupangItemRequestDto;
+import com.coupang.scrap.helper.CoupangRequestListHelper;
+import com.coupang.scrap.task.AiTitleOptimizationTask;
+import com.coupang.scrap.task.ImageUploadTask;
+import com.coupang.utils.PriceUtils;
+
+public class EchobelleProductViewHandler implements ProductViewHandler {
+
+    // This method handles a single product element from the list.
+    @Override
+    public CoupangRequestList handleFromElement(WebDriver driver, WebElement row, CoupangRepository repository) {
+        CoupangRequestList tempList = new CoupangRequestList();
+        String mainWindow = driver.getWindowHandle();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        try {
+            // === HTML Parsing with Jsoup ===
+            String rowHtml = row.getAttribute("outerHTML");
+            Document doc = Jsoup.parse(rowHtml);
+
+            // ListCode, Title, Product Code
+            Element codeTd = doc.selectFirst("td.list-code");
+            if (codeTd == null) return tempList;
+
+            String listCodeText = codeTd.html().replaceAll("(?i)<br\\s*/?>", "\n").trim();
+            String title = extractTitle(listCodeText);
+            String productCode = extractProductCode(listCodeText);
+            if (productCode.isEmpty()) return tempList;
+            System.out.println("Processing product: " + title + " (" + productCode + ")");
+
+            // Check for stock
+            Element stockTd = doc.selectFirst("td.list-jg");
+            if (stockTd == null) return tempList;
+            String stockInfo = stockTd.text().replaceAll("\\s+", "");
+            if (stockInfo.contains("품절")) return tempList;
+
+            // Check for duplicates
+            if (repository.existsByProductCode(productCode) != null) return tempList;
+
+            // Price and thumbnail
+            int sellingPrice = PriceUtils.parsePrice(doc.selectFirst("td.list-p2").text());
+            int consumerPrice = PriceUtils.parsePrice(doc.selectFirst("td.list-p1").text());
+            String thumbnailUrl = doc.selectFirst("td.list-img1 img").attr("src");
+
+            // === Navigate to Detail Page using Selenium ===
+            WebElement aTag = row.findElement(By.cssSelector("td.list-img2 a"));
+            Set<String> beforeClick = driver.getWindowHandles();
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", aTag);
+
+            // Wait for the new window to open
+            wait.until(ExpectedConditions.numberOfWindowsToBe(beforeClick.size() + 1));
+            Set<String> afterClick = driver.getWindowHandles();
+            afterClick.removeAll(beforeClick);
+            if (afterClick.isEmpty()) {
+                System.err.println("Failed to open detail page for " + productCode);
+                return tempList;
+            }
+
+            String detailWindow = afterClick.iterator().next();
+            driver.switchTo().window(detailWindow);
+
+            // Wait for images to load on the detail page
+            wait.until(d -> !driver.findElements(By.cssSelector("center img")).isEmpty());
+            List<String> detailImageUrls = driver.findElements(By.cssSelector("center img")).stream()
+                    .map(img -> img.getAttribute("src"))
+                    .filter(src -> src != null && !src.isEmpty())
+                    .collect(Collectors.toList());
+
+            // Prepare for async tasks
+            Map<String, List<String>> imagesToUpload = new HashMap<>();
+            imagesToUpload.put("thumbnail", List.of(thumbnailUrl));
+            imagesToUpload.put("detailImage", detailImageUrls);
+
+            // Use CompletableFuture to run tasks in parallel
+            CompletableFuture<Map<String, List<String>>> uploadFuture =
+                    new ImageUploadTask(imagesToUpload).executeAsync();
+            CompletableFuture<String> aiTitleFuture =
+                    new AiTitleOptimizationTask(title, new OpenAiClient()).executeAsync();
+
+            // Wait for both async tasks to complete
+            Map<String, List<String>> uploadedImages = uploadFuture.join();
+            String aiTitle = aiTitleFuture.join();
+
+            // Build the DTO and add to the request list
+            Coupang coupang = CoupangRequestListHelper.addCoupangToList(
+                    tempList, title, aiTitle, productCode, driver.getCurrentUrl(), "", ""
+            );
+
+            CoupangItemRequestDto dto = CoupangItemRequestDto.builder()
+                    .coupang(coupang)
+                    .itemTitle(title)
+                    .sellingPrice(sellingPrice)
+                    .consumerPrice(consumerPrice)
+                    .quantity(10)
+                    .thumbnailImages(uploadedImages.get("thumbnail"))
+                    .detailImages(uploadedImages.getOrDefault("detailImage", List.of()))
+                    .optionValues(List.of())
+                    .build();
+
+            CoupangRequestListHelper.addItemFromDto(tempList, dto);
+
+        } catch (Exception e) {
+            System.err.println("An unexpected error occurred: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Ensure the driver always returns to the main window and the detail window is closed.
+            try {
+                if (!driver.getWindowHandle().equals(mainWindow)) {
+                    driver.close();
+                    driver.switchTo().window(mainWindow);
+                }
+            } catch (Exception ignored) {
+                // Ignore exceptions if windows are already closed
+            }
+        }
+        return tempList;
+    }
+
+    private String extractTitle(String listCodeText) {
+        return (listCodeText == null || listCodeText.isBlank())
+                ? ""
+                : listCodeText.replaceAll("\\s*\\([^)]*\\)\\s*$", "").trim();
+    }
+
+    private String extractProductCode(String listCodeText) {
+        if (listCodeText == null || listCodeText.isBlank()) return "";
+        Matcher matcher = Pattern.compile("\\(([^()\\s]+)\\)\\s*$").matcher(listCodeText.trim());
+        return matcher.find() ? matcher.group(1).trim() : "";
+    }
+}

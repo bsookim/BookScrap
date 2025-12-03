@@ -1,0 +1,21 @@
+package com.shop.entity;
+
+import java.util.List;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.kick.Coupang;
+import com.kick.dto.CoupangFlatDto;
+
+public interface CoupangRepository extends JpaRepository<Coupang, Long>{
+	
+	@Query(value="SELECT c FROM Coupang c JOIN c.items JOIN c.items.attributes JOIN c.items.images JOIN c.items.contents JOIN c.items.contents.contentDetails")
+	List<Coupang> findAllByCoupang();
+	
+	@Query(value="SELECT c FROM Coupang c INNER JOIN c.items INNER JOIN c.items.attributes INNER  JOIN c.items.images INNER  JOIN c.items.contents INNER JOIN c.items.contents.contentDetails WHERE c.id =:id")
+	CoupangFlatDto findByCoupang(@Param("id") long id);
+	
+}

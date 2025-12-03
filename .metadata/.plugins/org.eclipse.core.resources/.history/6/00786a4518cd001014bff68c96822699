@@ -1,0 +1,29 @@
+package com.scrap.dto;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.scrap.entity.BookReply;
+
+import lombok.Getter;
+
+@Getter
+public class BookReplyDto {
+
+	private Long id;
+	
+	private String content;
+	
+	public static List<BookReplyDto> replyFindAll(List<BookReply> bookReply) {
+		List<BookReplyDto> list= new ArrayList<BookReplyDto>();
+		
+		for(BookReply reply: bookReply) {
+			BookReplyDto dto= new BookReplyDto();
+			dto.id= reply.getId();
+			
+		}
+		
+		return null;
+	}
+
+}

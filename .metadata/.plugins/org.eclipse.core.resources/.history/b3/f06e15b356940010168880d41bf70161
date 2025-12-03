@@ -1,0 +1,40 @@
+package com.coupang.scrap.login;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+
+public class FeelwooLoginPage implements LoginPage{
+	
+	private WebDriver driver;
+	
+	public FeelwooLoginPage(WebDriver driver) {
+        this.driver = driver;
+        PageFactory.initElements(driver, this);
+    }
+	
+	@FindBy(css = "#id")
+	private WebElement username;
+	
+	@FindBy(css = "#pw")
+	private WebElement password;
+	
+	@FindBy(css = "#login-ok")
+	private WebElement loginButton;
+	
+	@Override
+	public WebElement getUsernameField() {
+		return username;
+	}
+
+	@Override
+	public WebElement getPasswordField() {
+		return password;
+	}
+	
+	@Override
+	public WebElement getLoginButton() {
+		return loginButton;
+	}
+}

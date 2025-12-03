@@ -1,0 +1,183 @@
+package com.scrap.pom;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+
+import com.scrap.data.BooksData;
+import com.scrap.entity.BookCategory;
+import com.scrap.entity.Books;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+public class SeleniumBooks {
+
+    @FindBy(css="#content_inner > article > div.row > div.col-sm-6.product_main > h1")
+    private WebElement title;
+
+    @FindBy(css="#content_inner > article > div.row > div.col-sm-6.product_main > p.price_color")
+    private WebElement price;
+
+    @FindBy(css="#content_inner > article > div.row > div.col-sm-6.product_main > p.instock.availability")
+    private WebElement stock;
+
+    @FindBy(css="#content_inner > article > p")
+    private WebElement descpription;
+
+    @FindBy(xpath = "//table[@class='table table-striped']//th[text()='UPC']/following-sibling::td")
+    private WebElement upc;
+
+    @FindBy(xpath = "//table[@class='table table-striped']//th[text()='Product Type']/following-sibling::td")
+    private WebElement productType;
+
+    @FindBy(css="#product_gallery > div > div > div > img")
+    private WebElement thumbNail;
+
+    @FindBy(css="ul.breadcrumb > li")
+    private List<WebElement> categoryList;
+
+    public BooksData booksHref(WebDriver driver, SeleniumBookCategory sbc) {
+        BooksData bookData = new BooksData();
+        List<String> categoryUrls = new ArrayList<>();
+
+        for (WebElement category : sbc.getCategoryUrls()) {
+            try {
+                String href = category.getDomProperty("href");
+                if (href != null && !href.isEmpty()) {
+                    categoryUrls.add(href);
+                    BookCategory bookCategory = BookCategory.builder()
+                            .categoryUrl(href)
+                            .categoryText(category.getText())
+                            .build();
+                    bookData.getBookCategoryList().add(bookCategory);
+                }
+            } catch (NoSuchElementException e) {
+            }
+        }
+
+        List<String> allBookUrls = new ArrayList<>();
+        for (String categoryUrl : categoryUrls) {
+            driver.get(categoryUrl);
+
+            Integer endPage = null;
+            try {
+                WebElement endPageElement = driver.findElement(
+                        By.cssSelector("#default > div > div > div > div > section > div:nth-child(2) > div > ul > li.current")
+                );
+                String text = endPageElement.getText(); 
+                if (text != null && text.contains("of")) {
+                    String[] parts = text.split("of");
+                    endPage = Integer.parseInt(parts[1].trim());
+                }
+            } catch (Exception e) {
+            }
+
+            if (endPage == null) {
+                List<WebElement> hrefsOnPage = driver.findElements(By.cssSelector("div.image_container a"));
+                allBookUrls.addAll(detailUrls(hrefsOnPage));
+            } else {
+                for (int i = 1; i <= endPage; i++) {
+                    List<WebElement> hrefsOnPage = driver.findElements(By.cssSelector("div.image_container a"));
+                    allBookUrls.addAll(detailUrls(hrefsOnPage));
+
+                    List<WebElement> nextButtons = driver.findElements(By.cssSelector("li.next > a"));
+                    if (!nextButtons.isEmpty()) {
+                        clickNoSuchException(nextButtons.get(0));
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        bookData.getUrls().addAll(allBookUrls);
+        return bookData;
+    }
+
+    public List<Books> booksDetailPage(WebDriver driver, List<String> urls) {
+        List<Books> books = new ArrayList<>();
+
+        for (String url : urls) {
+            try {
+                driver.get(url);
+                PageFactory.initElements(driver, this);
+
+                List<String> categoryTexts = new ArrayList<>();
+                if (categoryList != null) {
+                    for (WebElement li : categoryList) {
+                        try {
+                            String txt = li.getText();
+                            if (txt != null) categoryTexts.add(txt.trim());
+                        } catch (NoSuchElementException e) {
+                        }
+                    }
+                }
+
+                String rawStock = textNoSuchException(this.stock);
+                String stockOnlyDigits = rawStock.replaceAll("[^0-9]", "");
+                String thumbnailSrc = thumbNail.getDomProperty("src");
+
+                Books book = Books.builder()
+                        .title(textNoSuchException(this.title))
+                        .price(textNoSuchException(this.price))
+                        .stock(stockOnlyDigits)
+                        .descpription(textNoSuchException(this.descpription))
+                        .upc(textNoSuchException(this.upc))
+                        .productType(textNoSuchException(this.productType))
+                        .currnetUrl(driver.getCurrentUrl())
+                        .thumbNail(thumbnailSrc)
+                        .category(categoryTexts)
+                        .build();
+
+                books.add(book);
+            } catch (Exception e) {
+                System.err.println("booksDetailPage error for url: " + url);
+                e.printStackTrace();
+            }
+        }
+
+        return books;
+    }
+
+    public List<String> detailUrls(List<WebElement> list) {
+        List<String> urls = new ArrayList<>();
+        for (WebElement a : list) {
+            try {
+               String href = a.getDomProperty("href");
+               urls.add(href);
+            } catch (Exception e) {
+            }
+        }
+        return urls;
+    }
+
+    public String textNoSuchException(WebElement element) {
+        try {
+            if (element == null) return "";
+            String txt = element.getText();
+            return txt == null ? "" : txt.trim();
+        } catch (NoSuchElementException e) {
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public void clickNoSuchException(WebElement element) {
+        try {
+            if (element != null) element.click();
+        } catch (Exception e) {
+        }
+    }
+}

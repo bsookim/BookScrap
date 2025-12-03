@@ -1,0 +1,15 @@
+package com.scrap.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class BookCategoryDto {
+	
+	private Long id;
+	
+	private String categoryUrl;
+	
+	private String categoryName;
+}

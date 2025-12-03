@@ -1,0 +1,320 @@
+package com.coupang.hamc.product.client;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.springframework.stereotype.Component;
+
+import com.coupang.dto.response.CoupangApiDetailResponse;
+import com.coupang.dto.response.CoupangApiResponse;
+import com.coupang.dto.response.CoupangDeleteProductResponse;
+import com.coupang.dto.response.CoupangDetailItemResponse;
+import com.coupang.dto.response.CoupangUpdateProductQuantityResponse;
+import com.coupang.hamc.product.client.HmacCoupangClient;
+import com.coupang.openapi.sdk.Hmac;
+
+import lombok.RequiredArgsConstructor;
+
+import org.apache.http.client.entity.EntityBuilder;
+import org.apache.http.client.utils.URIBuilder;
+
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+@Component
+@RequiredArgsConstructor
+public class HmacCoupangClient implements CoupangProductClient{
+	
+	  private static final String HOST = "api-gateway.coupang.com";
+	  private static final int PORT = 443;
+	  private static final String SCHEMA = "https";
+	  
+	  @Override
+	  public CoupangApiResponse sendDataToCoupang(String jsonPayload, Long coupangId, Long userId,  String accessKey, String secretKey) {
+		  String method = "POST";
+	      String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
+	
+	      try (CloseableHttpClient client = HttpClients.createDefault()) {
+	          URI uri = new URIBuilder()
+	                  .setScheme(SCHEMA)
+	                  .setHost(HOST)
+	                  .setPort(PORT)
+	                  .setPath(path)
+	                  .build();
+	
+	          URIBuilder uriBuilder = new URIBuilder().setPath(path);
+	          String authorization = Hmac.generate(method, uriBuilder.build().toString(), secretKey, accessKey);
+	
+	          HttpPost requestPost = new HttpPost(uri);
+	          requestPost.addHeader("Authorization", authorization);
+	          requestPost.addHeader("Content-Type", "application/json");
+	          requestPost.setEntity(EntityBuilder.create()
+	                  .setText(jsonPayload)
+	                  .setContentType(org.apache.http.entity.ContentType.APPLICATION_JSON)
+	                  .build());
+	
+	          try (CloseableHttpResponse response = client.execute(requestPost)) {
+	              int statusCode = response.getStatusLine().getStatusCode();
+	              String statusMessage = response.getStatusLine().getReasonPhrase();
+	
+	              if (statusCode != 200) {
+	                  return CoupangApiResponse.builder()
+	                          .success(false)
+	                          .data(null)
+	                          .message("API 호출 실패: " + statusMessage)
+	                          .build();
+	              }
+	
+	              HttpEntity entity = response.getEntity();
+	              String responseBody = EntityUtils.toString(entity);
+	
+	              JSONObject jsonObj = new JSONObject(responseBody);
+	
+	              if ("SUCCESS".equals(jsonObj.optString("code"))) {
+	                  Long data = jsonObj.has("data") ? jsonObj.getLong("data") : null;
+	                  if (data != null) {
+	                      return CoupangApiResponse.builder()
+	                              .success(true)
+	                              .data(data)
+	                              .message("데이터가 쿠팡으로 전송되었습니다.")
+	                              .build();
+	                  } else {
+	                      return CoupangApiResponse.builder()
+	                              .success(false)
+	                              .data(null)
+	                              .message("API 응답에 'data' 필드가 없습니다.")
+	                              .build();
+	                  }
+	              } else {
+	                  return CoupangApiResponse.builder()
+	                          .success(false)
+	                          .data(null)
+	                          .message(jsonObj.optString("message", "알 수 없는 오류 발생"))
+	                          .build();
+	              }
+	          }
+	      } catch (Exception e) {
+	          e.printStackTrace();
+	          return CoupangApiResponse.builder()
+	                  .success(false)
+	                  .data(null)
+	                  .message("쿠팡 API 요청 중 예외 발생: " + e.getMessage())
+	                  .build();
+	      }
+	  }
+
+	@Override
+	public CoupangApiDetailResponse detailDataToCoupang(long productSellerId, String accessKey, String secretKey) {
+		String method = "GET";
+		String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/" + productSellerId;
+
+		try (CloseableHttpClient client = HttpClients.createDefault()) {
+		    URI uri = new URIBuilder()
+		            .setScheme(SCHEMA)
+		            .setHost(HOST)
+		            .setPath(path)
+		            .build();
+
+		    String authorization = Hmac.generate(method, path, secretKey, accessKey);
+
+		    HttpGet requestGet = new HttpGet(uri);
+		    requestGet.addHeader("Authorization", authorization);
+		    requestGet.addHeader("Content-Type", "application/json");
+
+		    try (CloseableHttpResponse response = client.execute(requestGet)) {
+		        int statusCode = response.getStatusLine().getStatusCode();
+		        String responseBody = EntityUtils.toString(response.getEntity());
+
+		        JSONObject jsonObj = new JSONObject(responseBody);
+
+		        if (statusCode != 200) {
+		            return CoupangApiDetailResponse.builder()
+		                    .success(false)
+		                    .message("API 호출 실패: " + jsonObj.optString("message", "알 수 없는 오류"))
+		                    .build();
+		        }
+
+		        JSONObject dataObj = jsonObj.optJSONObject("data");
+		        if (dataObj == null) {
+		            return CoupangApiDetailResponse.builder()
+		                    .success(false)
+		                    .message("API 응답에 'data' 필드가 없습니다.")
+		                    .build();
+		        }
+
+		        Long sellerProductId = dataObj.optLong("sellerProductId");
+
+		        String vendorId = dataObj.optString("vendorId", "");
+		        
+		        List<CoupangDetailItemResponse> itemList = new ArrayList<>();
+
+		        if (dataObj.has("items")) {
+		            JSONArray itemsArray = dataObj.getJSONArray("items");
+		            for (int i = 0; i < itemsArray.length(); i++) {
+		                JSONObject item = itemsArray.getJSONObject(i);
+		                
+		                CoupangDetailItemResponse itemResponse = CoupangDetailItemResponse.builder()
+		                        .vendorItemId(item.optLong("vendorItemId"))
+		                        .sellerProductItemId(item.optLong("sellerProductItemId"))
+		                        .itemName(item.optString("itemName", ""))
+		                        .sellerProductId(sellerProductId)
+		                        .build();
+		                itemList.add(itemResponse);
+		            }
+		        }
+
+		        return CoupangApiDetailResponse.builder()
+		                .success(true)
+		                .sellerProductId(sellerProductId)
+		                .vendorId(vendorId)
+		                .itemList(itemList)
+		                .message("상세 데이터를 성공적으로 조회했습니다.")
+		                .build();
+		    }
+		} catch (Exception e) {
+		    e.printStackTrace();
+		    return CoupangApiDetailResponse.builder()
+		            .success(false)
+		            .message("쿠팡 상세 API 요청 중 예외 발생: " + e.getMessage())
+		            .build();
+		}
+    }
+
+	@Override
+	public int updateDataToCoupang(Long vendorItemId, String accessKey, String secretKey) {
+	    String method = "PUT";
+	    String path = String.format("/v2/providers/seller_api/apis/api/v1/marketplace/vendor-items/%d/sales/stop", vendorItemId);
+
+	    try (CloseableHttpClient client = HttpClients.createDefault()) {
+	        URI uri = new URIBuilder()
+	                .setScheme(SCHEMA)
+	                .setHost(HOST)
+	                .setPath(path)
+	                .build();
+
+	        String authorization = Hmac.generate(method, path, secretKey, accessKey);
+
+	        HttpPut request = new HttpPut(uri);
+	        request.addHeader("Authorization", authorization);
+	        request.addHeader("Content-Type", "application/json");
+
+	        try (CloseableHttpResponse response = client.execute(request)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+	            if (statusCode != 200) {
+	                System.err.println("판매 중지 실패 (vendorItemId: " + vendorItemId + ") - 응답: " + responseBody);
+	                return 0;
+	            }
+
+	            return statusCode;
+	        }
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return -1;
+	    }
+	}
+
+	@Override
+	public CoupangDeleteProductResponse deleteDataToCoupang(long productSellerId, String accessKey, String secretKey) {
+		String method = "DELETE";
+	    String path = String.format("/v2/providers/seller_api/apis/api/v1/marketplace/seller-products/%d", productSellerId);
+
+	    try (CloseableHttpClient client = HttpClients.createDefault()) {
+	        URI uri = new URIBuilder()
+	                .setScheme(SCHEMA)
+	                .setHost(HOST)
+	                .setPath(path)
+	                .build();
+
+	        String authorization = Hmac.generate(method, path, secretKey, accessKey);
+
+	        HttpDelete request = new HttpDelete(uri);
+	        request.addHeader("Authorization", authorization);
+	        request.addHeader("Content-Type", "application/json");
+
+	        try (CloseableHttpResponse response = client.execute(request)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+	            
+	            JSONObject jsonResponse = new JSONObject(responseBody);
+	            String code = jsonResponse.optString("code", "ERROR");
+	            String message = jsonResponse.optString("message", "삭제 실패");
+	            String data = jsonResponse.optString("data", "");
+	            
+	            return CoupangDeleteProductResponse.builder()
+	                    .code(code)
+	                    .message(message)
+	                    .data(data)
+	                    .statusCode(statusCode)
+	                    .build();
+	        }
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return CoupangDeleteProductResponse.builder()
+	                .code("ERROR")
+	                .message("삭제 요청 중 예외 발생: " + e.getMessage())
+	                .data("")
+	                .statusCode(500)
+	                .build();
+	    }
+	}
+
+//	@Override
+//	public CoupangUpdateProductQuantityResponse updateZeroDataToCoupang(String accessKey, String secretKey) {
+//	 	String method = "PUT";
+//        String path = String.format("/v2/providers/seller_api/apis/api/v1/marketplace/vendor-items/%d/quantities/%d", vendorItemId, quantity);
+//
+//        try (CloseableHttpClient client = HttpClients.createDefault()) {
+//            URI uri = new URIBuilder()
+//                    .setScheme(SCHEMA)
+//                    .setHost(HOST)
+//                    .setPath(path)
+//                    .build();
+//
+//            String authorization = Hmac.generate(method, path, secretKey, accessKey);
+//
+//            HttpPut request = new HttpPut(uri);
+//            request.addHeader("Authorization", authorization);
+//            request.addHeader("Content-Type", "application/json");
+//
+//            // 요청을 보내고 응답 받기
+//            try (CloseableHttpResponse response = client.execute(request)) {
+//                int statusCode = response.getStatusLine().getStatusCode();
+//                String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+//                
+//                JSONObject jsonResponse = new JSONObject(responseBody);
+//                String code = jsonResponse.optString("code", "ERROR");
+//                String message = jsonResponse.optString("message", "수량 변경 실패");
+//                
+//                return CoupangUpdateProductQuantityResponse.builder()
+//                        .code(code)
+//                        .message(message)
+//                        .statusCode(statusCode)
+//                        .build();
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return CoupangUpdateProductQuantityResponse.builder()
+//                    .code("ERROR")
+//                    .message("수량 변경 요청 중 예외 발생: " + e.getMessage())
+//                    .statusCode(500)
+//                    .build();
+//        }
+//
+//	}
+
+}
+

@@ -1,0 +1,28 @@
+package com.scrap.controller;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.scrap.service.BookService;
+import com.scrap.request.UrlRequest;
+
+import lombok.RequiredArgsConstructor;
+
+@RequestMapping("/books")
+@RequiredArgsConstructor
+@RestController
+@CrossOrigin("http://localhost:3001")
+public class BookController {
+
+	private final BookService booksService;
+	
+	//컨트롤러 주석
+	@PostMapping("/save")
+	public void booksSavea(@RequestBody UrlRequest urlRequest) {
+	    booksService.booksSave(urlRequest.getUrl());
+	}
+
+}

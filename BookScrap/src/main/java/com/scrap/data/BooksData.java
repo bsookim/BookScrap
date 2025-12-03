@@ -1,0 +1,23 @@
+package com.scrap.data;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.scrap.entity.BookCategory;
+import com.scrap.entity.BookReply;
+import com.scrap.entity.Book;
+
+import lombok.Getter;
+
+@Getter 
+public class BooksData {
+	
+	List<Book> bookList=new ArrayList<>();
+	
+	List<BookCategory> bookCategoryList=new ArrayList<>();
+	
+	List<BookReply> bookReplyList= new ArrayList<>();
+	
+	List<String> urls = new ArrayList<>();
+	
+}

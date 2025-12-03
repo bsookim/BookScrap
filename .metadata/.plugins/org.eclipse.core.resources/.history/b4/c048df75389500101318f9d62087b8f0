@@ -1,0 +1,35 @@
+package com.coupang.scrap.view;
+
+import org.jsoup.Jsoup;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+
+public class ProFishingProductViewHandler implements ProductViewHandler {
+
+    @Override
+    public CoupangRequestList handle(WebDriver driver, String url, CoupangRepository coupangRepository) {
+        System.out.println("[INFO] ProFishingProductViewHandler handle 호출됨: " + url);
+
+        CoupangRequestList requestList = new CoupangRequestList();
+
+        try {
+            // 모달이 이미 열려있다고 가정
+            String modalHtml = driver.findElement(By.cssSelector("div.pop_wrap.pop_list.on"))
+                                     .getAttribute("outerHTML");
+
+            // Jsoup로 필요한 데이터 추출
+            String jan = Jsoup.parse(modalHtml).select("#I_JAN").text();
+            requestList.addJanCode(jan);
+
+            // TODO: 여기서 모달 안의 다른 데이터도 모두 추출 후 requestList에 추가
+
+        } catch (Exception e) {
+            System.out.println("[WARN] 모달 처리 실패: " + e.getMessage());
+        }
+
+        return requestList;
+    }
+}

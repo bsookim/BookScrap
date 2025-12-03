@@ -1,0 +1,102 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import "../styles/detail.css";
+import Reply from './reply';
+import ReplyList from './replylist';
+
+const Detail = () => {
+  const { id } = useParams();
+  const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [replyList, setReplyList] = useState([]);
+  const navigate = useNavigate();
+
+  const fetchReplies = async () => {
+    try {
+      const res = await axios.get(`http://localhost:8080/books/reply/list/${id}`);
+      setReplyList(res.data);
+    } catch (err) {
+      console.error("댓글 조회 실패:", err);
+    }
+  };
+
+  const addReply = (reply) => {
+    setReplyList(prev => [...prev, reply]);
+  };
+
+  const fetchDeleteBook = async () => {
+    try {
+      await axios.delete(`http://localhost:8080/books/delete/${id}`);
+      alert("삭제 완료되었습니다.");
+      navigate("/");
+    } catch (err) {
+      console.error("삭제 실패:", err);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const updateBook = () => {
+    navigate(`/update/${id}`);
+  };
+
+  useEffect(() => {
+    const fetchBook = async () => {
+      try {
+        const res = await axios.get(`http://localhost:8080/books/detail/${id}`);
+        setBook(res.data);
+      } catch (err) {
+        console.error("조회 실패:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBook();
+    fetchReplies();
+  }, [id]);
+
+  if (loading) return <div className="loading">로딩중...</div>;
+
+  return (
+    <div className="detail-container">
+      <div className="detail-card">
+        {book && (
+          <>
+            <p className="book-categories">
+              <strong>카테고리:</strong> {book.categoryList.join(" > ")}
+            </p>
+
+            <img className="detail-img" src={book.thumbNail} alt={book.title} />
+            <h2 className="detail-title">{book.title}</h2>
+
+            <div className="detail-info">
+              <p><strong>게시글번호:</strong> {book.id}</p>
+              <p><strong>가격:</strong> {book.price}</p>
+              <p><strong>재고:</strong> {book.stock}</p>
+              <p><strong>설명:</strong></p>
+              <p className="detail-desc">{book.descpription}</p>
+            </div>
+
+            <div className="detail-btns">
+              <button className="btn btn-delete" onClick={fetchDeleteBook}>삭제</button>
+              <button className="btn btn-update" onClick={updateBook}>수정</button>
+            </div>
+
+            <ReplyList
+              replyList={replyList}
+              setReplyList={setReplyList}
+            />
+            <Reply
+              books_id={id}
+              onAdd={addReply}
+            />
+
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Detail;

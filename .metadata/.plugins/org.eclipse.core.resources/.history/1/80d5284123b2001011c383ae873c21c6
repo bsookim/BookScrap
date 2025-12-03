@@ -1,0 +1,130 @@
+package com.coupang.scrap.naver.view;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.ai.OpenAiClient;
+import com.coupang.entity.Coupang;
+import com.coupang.entity.CoupangContents;
+import com.coupang.entity.CoupangItems;
+import com.coupang.entity.Naver;
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+import com.coupang.repository.NaverRepository;
+import com.coupang.scrap.helper.CoupangRequestListHelper;
+import com.coupang.scrap.options.BonniepetOptionHandler;
+import com.coupang.scrap.options.OptionHandler;
+import com.coupang.scrap.options.OptionProcessor;
+import com.coupang.scrap.options.OwnerclanOptionHandler;
+import com.coupang.scrap.task.AiTitleOptimizationTask;
+import com.coupang.scrap.task.ImageUploadTask;
+import com.coupang.scrap.util.HtmlTableUtil;
+import com.coupang.scrap.view.ProductViewHandler;
+import com.coupang.utils.JsoupUtils;
+import com.coupang.scrap.options.ThreeMroOptionHandler;
+
+import com.coupang.utils.PriceUtils;
+
+public class ThreeMroProductViewHandler implements ProductViewHandler{
+	
+    public Naver handleNaverExcel(WebDriver driver, String url,NaverRepository naverRepository) {
+		Naver requestList = new Naver();
+
+        try {
+            driver.get(url);
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("body.loaded")));
+            String html = driver.getPageSource();
+            Document doc = Jsoup.parse(html);
+
+            String title = JsoupUtils.extractText(doc, "body > div.wrapper > div.basic-body.page-body > div > main > div > form > div > div > div.col-md-7 > div > h3 > strong");
+            int sellingPrice = PriceUtils.parsePrice(JsoupUtils.extractText(doc, "strong.shop-product-prices"));
+            int consumerPrice = sellingPrice;
+            
+            String productCode = JsoupUtils.extractText(doc,
+                    "div.shop-description-box > table.table > tbody > tr >th:contains(상품번호) + td");
+            productCode = "mro"+productCode;
+
+            String manufacture = JsoupUtils.extractText(doc,
+                    "div.shop-description-box > table.table > tbody > tr >th:contains(제조사) + td");
+            String brand = JsoupUtils.extractText(doc,
+                    "div.shop-description-box > table.table > tbody > tr >th:contains(브랜드) + td");
+            
+            String keyword = JsoupUtils.extractText(doc,
+                    "#sit_rel > div > div > table > thead > tr > th:contains(추천키워드/연관검색어) + td");;
+                    
+            Integer existCode = naverRepository.existsByProductCode(productCode);
+            if (existCode != null && existCode > 0) return requestList; // 이미 존재하면 스킵
+
+            // 이미지 수집
+            String thumbnail = JsoupUtils.extractImageSrc(doc, "#bimg_0 > img", url);
+            List<String> subThumbnailList = JsoupUtils.extractImageSrcList(doc,
+                    "div.thumb-img > img", url);
+
+            List<String> detailImageList = Optional.ofNullable(doc.getElementById("explan"))
+                    .map(e -> Parser.unescapeEntities(e.html(), true))
+                    .map(Jsoup::parseBodyFragment)
+                    .map(d -> d.select("img").stream()
+                               .map(img -> img.attr("src"))
+                               .toList())
+                    .orElseGet(List::of);
+
+            String detailHtml = detailImageList.stream()
+                    .map(src -> "<img src=\"" + src + "\" style=\"width:100%;\"/>")
+                    .collect(Collectors.joining("<br/>\n", "<p style=\"text-align:center;\">\n", "\n</p>"));
+            
+            System.out.println(thumbnail);
+            System.out.println(consumerPrice);
+            List<WebElement> selects = driver.findElements(By.cssSelector(".get_item_options select.it_option"));
+            List<OptionHandler<String>> handlers = new ArrayList<>();
+
+            for (int i = 0; i < selects.size(); i++) {
+                handlers.add(new ThreeMroOptionHandler(driver, i, handlers));
+            }
+
+            // 재귀 구조를 타며 전체 조합 생성
+            List<List<String>> allCombinations = OptionProcessor.processAllOptions(handlers, 0, new ArrayList<>());
+            System.out.println(allCombinations);
+            // 옵션이 없는 경우
+            if (selects.isEmpty()) {
+            	CompletableFuture<String> aiTitleFuture = new AiTitleOptimizationTask("naver",title,driver.getCurrentUrl(), new OpenAiClient()).executeAsync();
+                String aiTitle = aiTitleFuture.join();
+                Naver naver = Naver.toEntity(
+                		aiTitle,"", sellingPrice, expectedCustomsAgencyFee, brand, productCode, productStatus, deliveryType,
+                        deliveryZones, productOrigin, afterServiceGuide, returnDelivery,
+                        certiyficationInfo, thumbnail, subThumbnailList, htmlBuilder, topCategory,middleCategory,thirdCategory,finalCategory,currentUrl
+                );
+
+                return naver;
+            } else {
+                for (List<String> combo : allCombinations) {
+//                    addComboItem(requestList, coupang, combo, sellingPrice, consumerPrice, thumbnail, subThumbnailList, detailHtml);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return requestList;
+    }
+	
+}

@@ -1,0 +1,485 @@
+package com.coupang.service;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Duration;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.coupang.dto.response.CoupangApiDetailResponse;
+import com.coupang.dto.response.CoupangDeleteProductResponse;
+import com.coupang.dto.response.CoupangDetailItemResponse;
+import com.coupang.dto.response.CoupangDto;
+import com.coupang.dto.response.CoupangItemStatusDTO;
+import com.coupang.entity.Coupang;
+import com.coupang.entity.CoupangApiKey;
+import com.coupang.entity.CoupangAttributes;
+import com.coupang.entity.CoupangContents;
+import com.coupang.entity.CoupangDetails;
+import com.coupang.entity.CoupangImages;
+import com.coupang.entity.CoupangItems;
+import com.coupang.entity.CoupangUser;
+import com.coupang.entity.CoupangUserItemsStatus;
+import com.coupang.entity.Naver;
+import com.coupang.entity.WholesaleAccount;
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.hamc.product.client.CoupangProductClient;
+import com.coupang.list.CoupangIdListRequest;
+import com.coupang.repository.CoupangApiKeyRepository;
+import com.coupang.repository.CoupangAttributesRepository;
+import com.coupang.repository.CoupangContentsRepository;
+import com.coupang.repository.CoupangDetailsRepository;
+import com.coupang.repository.CoupangImagesRepository;
+import com.coupang.repository.CoupangItemsRepository;
+import com.coupang.repository.CoupangRepository;
+import com.coupang.repository.CoupangUserItemsStatusRepository;
+import com.coupang.repository.CoupangUserRepository;
+import com.coupang.repository.NaverRepository;
+import com.coupang.scrap.dto.CoupangItemSoldOutDto;
+import com.coupang.scrap.excel.dto.NaverDto;
+import com.coupang.scrap.list.ProductListPage;
+import com.coupang.scrap.login.LoginPage;
+import com.coupang.scrap.login.LoginSite;
+import com.coupang.scrap.soldout.SoldOutPage;
+import com.coupang.scrap.thread.WebDriverThreadPool;
+import com.coupang.scrap.view.ProductViewHandler;
+import com.coupang.scrap.view.ProductViewHandlerFactory;
+import com.coupang.selenium.dto.CoupangStocksDto;
+import com.coupang.utils.WebDriverUtils;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class CoupangCafe24Service {
+
+	private final NaverRepository naverRepository;
+	
+	private final CoupangRepository coupangRepository;
+	private final CoupangItemsRepository coupangItemsRepository;
+	private final CoupangImagesRepository coupangImagesRepository;
+	private final CoupangAttributesRepository coupangAttributesRepository;
+	private final CoupangDetailsRepository coupangDetailsRepository;
+	private final CoupangContentsRepository coupangContentsRepository;
+	private final CoupangUserRepository coupangUserRepository;
+	
+	private final CoupangUserItemsStatusRepository coupangUserItemsStatusRepository;
+	
+	private final CoupangApiKeyRepository coupangApiKeyRepository;
+	
+	private final CoupangProductClient coupangProductClient;
+	
+	public void loginUrl(String username, String password, String url, int startPage, int endPage,Long userId)
+	        throws Exception {
+		ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--headless"); // 헤드리스 모드
+//        options.addArguments("--disable-gpu"); // GPU 비활성화 (윈도우 환경에서 권장)
+//        options.addArguments("--window-size=1920,1080"); // 화면 크기 설정 (필요 시)
+		Map<String, Object> prefs = new HashMap<>();
+        Map<String, Object> translate = new HashMap<>();
+        translate.put("enabled", true);
+
+        Map<String, Object> translateWhitelists = new HashMap<>();
+        translateWhitelists.put("ja", "ko"); // 일본어 → 한국어 자동 번역
+
+        prefs.put("translate", translate);
+        prefs.put("translate_whitelists", translateWhitelists);
+
+        options.setExperimentalOption("prefs", prefs);
+
+		WebDriver driver = new ChromeDriver(options);
+		String domain = new URL(url).getHost();
+        
+        if (domain.contains("11st.co.kr")||domain.contains("superdelivery.com")) {
+    		LoginSite site = LoginSite.fromDomain(domain);
+
+    		if (site == null) {
+    		    throw new IllegalArgumentException("지원하지 않는 도메인: " + domain);
+    		}
+
+            WebDriverUtils.visitUrl(driver, url);
+            ProductViewHandler handler = ProductViewHandlerFactory.getHandler(domain);
+        	ProductListPage productPage = site.createProductListPage(driver, url, endPage);
+    	    List<Naver> allRequestList = productPage.collectNaverProducts(driver, startPage, endPage, handler, coupangRepository);
+    	    
+    	    NaverExcelProductSave(allRequestList);
+
+        } else {
+        	
+    		LoginSite site = LoginSite.fromDomain(domain);
+
+    		if (site == null) {
+    		    throw new IllegalArgumentException("지원하지 않는 도메인: " + domain);
+    		}
+
+            WebDriverUtils.visitUrl(driver, site.getLoginUrl());
+            WebDriverUtils.maximize(driver);
+
+            LoginPage page=null;
+            try {
+                page = site.getPageClass()
+                             .getDeclaredConstructor(WebDriver.class)
+                             .newInstance(driver);
+            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+                return; 
+            }
+
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            WebDriverUtils.fillInput(driver, page.getUsernameField(), username, wait);
+            WebDriverUtils.fillInput(driver, page.getPasswordField(), password, wait);
+            WebDriverUtils.clickElement(driver, page.getLoginButton(), wait);
+            
+            WebDriverUtils.handleAlertIfPresent(driver, wait);
+
+            WebDriverUtils.visitUrl(driver, url);
+            ProductViewHandler handler = ProductViewHandlerFactory.getHandler(domain);
+            ProductListPage productPage = site.createProductListPage(driver, url, endPage);
+            CoupangRequestList allRequestList = productPage.collectProducts(driver, startPage, endPage, handler, coupangRepository);
+
+            CoupangProductSave(
+                allRequestList.getCoupangList(),
+                allRequestList.getCoupangItemsList(),
+                allRequestList.getCoupangImagesList(),
+                allRequestList.getCoupangAttributesList(),
+                allRequestList.getCoupangDetailsList(),
+                allRequestList.getCoupangContentsList()
+            );
+        }
+        
+	    driver.quit();
+	}
+
+	@Transactional
+	private void NaverExcelProductSave(List<Naver> allRequestList) {
+		naverRepository.saveAll(allRequestList);
+	}
+
+	//bulk insert
+	@Transactional
+	private void CoupangProductSave(List<Coupang> coupangList, List<CoupangItems> items, List<CoupangImages> images,
+			List<CoupangAttributes> attributes, List<CoupangDetails> details, List<CoupangContents> contents) {
+		coupangRepository.saveAll(coupangList);
+		coupangItemsRepository.saveAll(items);
+		coupangImagesRepository.saveAll(images);
+		coupangContentsRepository.saveAll(contents);
+		coupangDetailsRepository.saveAll(details);
+		coupangAttributesRepository.saveAll(attributes);
+	}
+
+	public void getCoupangInventoryAndUpdate(String url, Long userId) 
+	        throws InterruptedException, MalformedURLException {
+
+	    CoupangUser coupangUser = coupangUserRepository.findById(userId)
+	            .orElseThrow(() -> new IllegalArgumentException("해당 User ID의 CoupangUser가 존재하지 않습니다. userId=" + userId));
+
+	    String domain = new URL(url).getHost();
+	    LoginSite loginSite = LoginSite.fromDomain(domain);
+	    if (loginSite == null) {
+	        throw new IllegalArgumentException("지원하지 않는 도메인입니다: " + domain);
+	    }
+
+	    WholesaleAccount account = coupangUser.getWholesaleAccounts().stream()
+	            .filter(acc -> loginSite.matches(acc.getSiteName()))
+	            .findFirst()
+	            .orElseThrow(() ->
+	                new IllegalArgumentException("해당 사이트 계정이 존재하지 않습니다. site=" + loginSite.name())
+	            );
+
+	    SoldOutPage soldOutPage = loginSite.createSoldOutPage();
+	    List<Coupang> coupangStockList = coupangRepository.findAllByBrandAndSendYn(domain); //여기 데이터가 없으면 
+	    
+	    List<String> productUrls = coupangStockList.stream()
+	                                               .map(Coupang::getCurrentUrl)
+	                                               .collect(Collectors.toList());
+
+	    int THREAD_COUNT = 4;
+	    BlockingQueue<WebDriver> driverPool = new LinkedBlockingQueue<>();
+	    for (int i = 0; i < THREAD_COUNT; i++) {
+	        WebDriver driver = new ChromeDriver();
+	        try {
+	            login(driver, loginSite, account);
+	        } catch (Exception e) {
+	            driver.quit();
+	            throw new RuntimeException("로그인 실패", e);
+	        }
+	        driverPool.add(driver);
+	    }
+
+	    ExecutorService executor = WebDriverThreadPool.getExecutor();
+	    List<Future<List<CoupangItemSoldOutDto>>> futures = new ArrayList<>();
+
+	    for (String productUrl : productUrls) {
+	        futures.add(executor.submit(() -> {
+	            WebDriver driver = driverPool.take();
+	            try {
+	                return soldOutPage.getSoldOutProducts(driver, List.of(productUrl));
+	            } finally {
+	                driverPool.offer(driver);
+	            }
+	        }));
+	    }
+
+	    List<CoupangItemSoldOutDto> soldOutDtos = new ArrayList<>();
+	    for (Future<List<CoupangItemSoldOutDto>> future : futures) {
+	        try {
+	            List<CoupangItemSoldOutDto> result = future.get();
+	            if (result != null) soldOutDtos.addAll(result);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+	    }
+
+	    List<CoupangStocksDto> stockDtos = soldOutDtos.stream()
+	            .map(s -> {
+	                CoupangStocksDto dto = new CoupangStocksDto();
+	                dto.setUrl(s.getUrl());
+	                dto.setProductCode(s.getProductCode());
+	                return dto;
+	            })
+	            .collect(Collectors.toList());
+
+	    updateCoupangStockStatus(stockDtos, userId, 0);
+
+	    for (WebDriver driver : driverPool) {
+	        try { driver.quit(); } catch (Exception ignored) {}
+	    }
+	}
+
+	private void login(WebDriver driver, LoginSite loginSite, WholesaleAccount account) {
+	    try {
+	        LoginPage page = loginSite.getPageClass()
+	                .getDeclaredConstructor(WebDriver.class)
+	                .newInstance(driver);
+
+	        WebDriverUtils.visitUrl(driver, loginSite.getLoginUrl());
+	        WebDriverUtils.maximize(driver);
+
+	        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+	        WebDriverUtils.fillInput(driver, page.getUsernameField(), account.getUsername(), wait);
+	        WebDriverUtils.fillInput(driver, page.getPasswordField(), account.getPassword(), wait);
+	        WebDriverUtils.clickElement(driver, page.getLoginButton(), wait);
+	        WebDriverUtils.handleAlertIfPresent(driver, wait);
+	    } catch (Exception e) {
+	        throw new RuntimeException("로그인 실패: " + e.getMessage(), e);
+	    }
+	}
+
+	@Transactional
+	public void updateCoupangStockStatus(List<CoupangStocksDto> stocks, Long userId, int quantity) {
+	    CoupangApiKey apiKey = coupangApiKeyRepository.findByCoupangUser_Id(userId)
+	            .orElseThrow(() -> new IllegalArgumentException("API Key가 존재하지 않습니다. User ID: " + userId));
+
+	    List<CoupangUserItemsStatus> itemsToSaveStatus = new ArrayList<>();
+
+	    for (CoupangStocksDto stock : stocks) {
+	        String url = stock.getUrl();
+	        String productCode = stock.getProductCode();
+
+	        List<CoupangItemStatusDTO> candidates;
+	        if (productCode != null && !productCode.isBlank()) {
+	            candidates = coupangItemsRepository.findAllByProductCodeAndDomain(productCode, url);
+	        } else {
+	            candidates = coupangItemsRepository.findAllByDomain(url);
+	        }
+
+	        if (candidates.isEmpty()) {
+	            continue;
+	        }
+
+	        for (CoupangItemStatusDTO dto : candidates) {
+	            Optional<CoupangUserItemsStatus> userItemOpt =
+	                    coupangUserItemsStatusRepository.findByCoupangItems_ItemIdAndCoupangUser_Id(dto.getItemId(), userId);
+
+	            if (userItemOpt.isEmpty()) {
+	                continue;
+	            }
+
+	            CoupangUserItemsStatus userItem = userItemOpt.get();
+
+	            CoupangApiDetailResponse detailResponse = coupangProductClient.detailDataToCoupang(
+	                    dto.getCoupangProductId(), apiKey.getAccessKey(), apiKey.getSecretKey());
+
+	            if (detailResponse.getItemList() != null && !detailResponse.getItemList().isEmpty()) {
+	                Long vendorItemId = detailResponse.getItemList().get(0).getVendorItemId();
+	                int statusCode = coupangProductClient.updateDataToCoupang(
+	                        vendorItemId, apiKey.getAccessKey(), apiKey.getSecretKey());
+
+	                if (statusCode == 200) {
+	                    userItem.setVendorItemId(vendorItemId);
+	                    userItem.setQuantity(quantity);
+	                    itemsToSaveStatus.add(userItem);
+	                }
+	            } else {
+	                System.out.printf("[DEBUG] vendorItemId 없음 → productCode=%s, url=%s, itemId=%d%n",
+	                        productCode, url, dto.getItemId());
+	                userItem.setQuantity(quantity);
+	                itemsToSaveStatus.add(userItem);
+	            }
+	        }
+	    }
+
+	    if (!itemsToSaveStatus.isEmpty()) {
+	        System.out.println("[RESULT] 업데이트 수량: " + itemsToSaveStatus.size());
+	        coupangUserItemsStatusRepository.saveAll(itemsToSaveStatus);
+	    } else {
+	        System.out.println("[RESULT] 업데이트 대상 없음");
+	    }
+	}
+
+	@Transactional
+	public String deleteInventory(long id, long productSellerId, long coupangUserId) throws InterruptedException {
+	    CoupangApiKey apiKey = coupangApiKeyRepository.findByCoupangUser_Id(coupangUserId)
+	        .orElseThrow(() -> new IllegalArgumentException("API Key가 존재하지 않습니다. User ID: " + coupangUserId));
+
+	    CoupangApiDetailResponse detailResponse = coupangProductClient.detailDataToCoupang(
+	        productSellerId, apiKey.getAccessKey(), apiKey.getSecretKey());
+	    List<CoupangDetailItemResponse> itemList = Optional.ofNullable(detailResponse.getItemList())
+	        .orElse(Collections.emptyList());
+
+	    if (itemList.isEmpty()) {
+	        return "삭제할 상품이 존재하지 않습니다.";
+	    }
+
+	    List<Long> vendorItemIds = itemList.stream()
+	        .map(CoupangDetailItemResponse::getVendorItemId)
+	        .filter(Objects::nonNull)
+	        .collect(Collectors.toList());
+
+	    List<String> itemNames = itemList.stream()
+	        .map(CoupangDetailItemResponse::getItemName)
+	        .filter(Objects::nonNull)
+	        .collect(Collectors.toList());
+
+	    List<CoupangUserItemsStatus> existingItems = coupangUserItemsStatusRepository
+	        .findBySellerProductIdAndVendorIdAndItemNames(productSellerId, itemNames);
+
+	    for (CoupangUserItemsStatus existingItem : existingItems) {
+	        itemList.stream()
+	            .filter(resp -> resp.getItemName().equals(existingItem.getItemName()) &&
+	                            Objects.equals(resp.getSellerProductId(), existingItem.getCoupangProductId()))
+	            .findFirst()
+	            .ifPresent(resp -> existingItem.setVendorItemId(resp.getVendorItemId()));
+	    }
+
+	    // 모든 vendorItemId에 대해 판매중지 요청
+	    boolean allSuccess = true;
+	    for (Long vendorItemId : vendorItemIds) {
+	        int responseCode = coupangProductClient.updateDataToCoupang(vendorItemId, apiKey.getAccessKey(), apiKey.getSecretKey());
+	        Thread.sleep(300); // API 처리 간 딜레이
+	        if (responseCode != 200) {
+	            allSuccess = false;
+	            System.out.println("판매중지 실패: vendorItemId = " + vendorItemId);
+	            coupangRepository.deleteById(id);
+	        }
+	    }
+
+	    if (!allSuccess) {
+	        return "판매 중지 실패: 일부 항목에서 오류 발생";
+	    }
+
+	    coupangUserItemsStatusRepository.saveAll(existingItems);
+
+	    CoupangDeleteProductResponse deleteResponse = coupangProductClient.deleteDataToCoupang(
+	        productSellerId, apiKey.getAccessKey(), apiKey.getSecretKey());
+
+	    if ("SUCCESS".equals(deleteResponse.getCode())) {
+	        coupangRepository.deleteById(id);
+	        return "상품 삭제 완료: " + deleteResponse.getMessage();
+	    } else {
+	        return "상품 삭제 실패: " + deleteResponse.getMessage();
+	    }
+	}
+
+	@Transactional(readOnly = true)
+	public Page<CoupangDto> getCoupangDto(Pageable pageable, Long userId,String searchKeyword) {
+		
+		pageable = PageRequest.of(pageable.getPageNumber() > 0 ? pageable.getPageNumber() - 1 : 0, 500);
+
+	    Page<Coupang> coupangPage = coupangRepository.searchSoldOutDeletedByKeyword(searchKeyword, pageable);  
+
+	    List<Long> coupangIds = coupangPage.getContent().stream()
+	                .map(Coupang::getCoupangId)
+	                .collect(Collectors.toList());
+	   
+	    List<CoupangItems> coupangItems = coupangItemsRepository.findDeletedItemsWithOptionalUserStatus(coupangIds, userId);
+	    
+	    List<Long> coupangItemIds = coupangItems.stream()
+	    			.map(CoupangItems::getItemId)
+	    			.collect(Collectors.toList());
+	    
+	    List<CoupangUserItemsStatus> coupangUserItemsStatus = coupangUserItemsStatusRepository.findByCoupangSoldOutIdsAndCoupangItemIds(coupangIds,coupangItemIds);
+
+	    List<CoupangImages> coupangImages = coupangImagesRepository.findImagesByItemIds(coupangItemIds);
+
+	    List<CoupangAttributes> coupangAttributes = coupangAttributesRepository.findAttributesByItemIds(coupangItemIds);
+	    
+	    List<CoupangContents> coupangContents = coupangContentsRepository.findContentsByItemIds(coupangItemIds);
+	    
+	    List<Long> coupangContentIds = coupangContents.stream()
+	    			.map(CoupangContents::getCoupangContentId)
+	    			.collect(Collectors.toList());
+	    
+	    List<CoupangDetails> coupangDetails = coupangDetailsRepository.findDetailsByItemIds(coupangContentIds);
+	    
+	    List<CoupangDto> dtoList = coupangPage.getContent().stream().map(coupang -> {
+
+	    	List<CoupangItems> itemsForCoupang = filterItemsByCoupangId(coupang, coupangItems);
+	        
+	        return CoupangDto.fromEntity(coupang, itemsForCoupang, coupangImages,coupangAttributes,coupangContents,coupangDetails,coupangUserItemsStatus);
+	    }).collect(Collectors.toList());
+	    
+	    return new PageImpl<>(dtoList, pageable, coupangPage.getTotalElements());
+	}
+	
+	private List<CoupangItems> filterItemsByCoupangId(Coupang coupang, List<CoupangItems> coupangItems) {
+	    if (coupang == null || coupangItems == null) {
+	        return Collections.emptyList();
+	    }
+
+	    return coupangItems.stream()
+	            .filter(item -> item.getCoupang() != null && 
+	                            item.getCoupang().getCoupangId() != null &&
+	                            item.getCoupang().getCoupangId().equals(coupang.getCoupangId()))
+	            .limit(200)
+	            .collect(Collectors.toList());
+	}
+
+	@Transactional
+	public void deleteCoupangs(List<Long> ids) {
+	    List<Coupang> list = coupangRepository.findAllById(ids);
+	    coupangRepository.deleteAll(list);
+	}
+
+	@Transactional
+	public void deleteCoupang(Long id) {
+
+		coupangRepository.deleteById(id);
+		
+	}
+
+}

@@ -1,0 +1,15 @@
+package com.scrap.repository;
+
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.scrap.entity.Books;
+
+public interface BooksRepository extends JpaRepository<Books, Long>{
+
+	Page<Books> findAll(Pageable pageable);
+
+}
+ 

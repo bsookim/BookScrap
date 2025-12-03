@@ -1,0 +1,66 @@
+package com.coupang.hamc;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.springframework.stereotype.Component;
+
+import com.coupang.openapi.sdk.Hmac;
+
+import lombok.RequiredArgsConstructor;
+
+import org.apache.http.client.entity.EntityBuilder;
+import org.apache.http.client.utils.URIBuilder;
+
+import java.net.URI;
+
+//반품지 생성
+@Component
+@RequiredArgsConstructor
+public class HmacReturnShippingCreation {
+	private static final String HOST = "api-gateway.coupang.com";
+    private static final String SCHEMA = "https";
+    private static final String ACCESS_KEY = "f20949fb-c3f6-417a-a357-94d4e6f405d6";
+    private static final String SECRET_KEY = "0d4263d854b749ba1742a44d8223c7bf6854d5cc";
+    
+    public void sendDataToCoupang(String jsonPayload) {
+        String method = "POST";
+        String path = "/v2/providers/openapi/apis/api/v4/vendors/A00962060/returnShippingCenters";
+
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            URI uri = new URIBuilder()
+                    .setScheme(SCHEMA)
+                    .setHost(HOST)
+                    .setPath(path)
+                    .build();
+
+            String signaturePath = path;
+            String authorization = Hmac.generate(method, signaturePath, SECRET_KEY, ACCESS_KEY);
+
+            HttpPost requestPost = new HttpPost(uri);
+            requestPost.addHeader("Authorization", authorization);
+            requestPost.addHeader("Content-Type", "application/json");
+            requestPost.setEntity(EntityBuilder.create().setText(jsonPayload).setContentType(org.apache.http.entity.ContentType.APPLICATION_JSON).build());
+
+            try (CloseableHttpResponse response = client.execute(requestPost)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                System.out.println("Status Code: " + statusCode);
+                System.out.println("Status Message: " + response.getStatusLine().getReasonPhrase());
+
+                HttpEntity entity = response.getEntity();
+                if (entity != null) {
+                    String result = EntityUtils.toString(entity);
+                    System.out.println("Result: " + result);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("An error occurred: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
+
+

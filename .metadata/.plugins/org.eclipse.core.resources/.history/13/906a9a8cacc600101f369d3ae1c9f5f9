@@ -1,0 +1,54 @@
+package com.scrap.controller;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.scrap.service.BooksService;
+import com.scrap.entity.Books;
+import com.scrap.request.UrlRequest;
+import com.scrap.response.BooksResponse;
+
+import lombok.RequiredArgsConstructor;
+
+@RequestMapping("/books")
+@RequiredArgsConstructor
+@RestController
+@CrossOrigin("http://localhost:3001") 
+public class BooksController {
+
+	private final BooksService booksService;
+	
+	//컨트롤러 주석 
+	@PostMapping("/save")
+	public void booksSave(@RequestBody UrlRequest urlRequest) {
+	    booksService.booksSave(urlRequest.getUrl());
+	}
+	
+	@GetMapping("/list")
+	public List<BooksResponse> bookList() {
+	    return booksService.bookList();
+	}
+
+	@GetMapping("/detail")
+	public Books bookDetail() {
+		return booksService.bookDetail();
+	}
+	
+	@DeleteMapping("delete")
+	public void bookDelete() {
+		booksService.bookDelete();
+	}
+	
+	@PutMapping
+	public String bookUpdate() {
+		return booksService.bookUpdate();
+	}
+}

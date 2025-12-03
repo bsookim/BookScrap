@@ -1,0 +1,150 @@
+package com.coupang.scrap.list;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.scrap.view.ProductViewHandler;
+import com.coupang.repository.CoupangRepository;
+
+public class EchobelleProductListPage implements ProductListPage {
+
+    private final List<WebDriver> driverPool;
+    private final BlockingQueue<WebDriver> availableDrivers = new LinkedBlockingQueue<>();
+    private final String baseUrl;
+    private final int endPage;
+    private static final String MORE_BUTTON_SELECTOR = "input[id='more'][type='button'][value*='더 보기']";
+
+    // 기존 생성자
+    public EchobelleProductListPage(WebDriver driver) {
+        this(driver, "", 1);
+    }
+
+    // 새 생성자: (WebDriver, String, int)
+    public EchobelleProductListPage(WebDriver driver, String url, int endPage) {
+        this.driverPool = List.of(driver);
+        this.baseUrl = url;
+        this.endPage = endPage;
+        initDriverPool();
+    }
+
+    // 리스트 기반 생성자
+    public EchobelleProductListPage(List<WebDriver> drivers, String url, int endPage) {
+        this.driverPool = drivers;
+        this.baseUrl = url;
+        this.endPage = endPage;
+        initDriverPool();
+    }
+
+    private void initDriverPool() {
+        availableDrivers.addAll(driverPool);
+    }
+
+    private WebDriver acquireDriver() throws InterruptedException {
+        return availableDrivers.take();
+    }
+
+    private void releaseDriver(WebDriver driver) {
+        availableDrivers.offer(driver);
+    }
+
+    private List<WebElement> loadAllProductRowsWithDriver(WebDriver driver) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        while (true) {
+            try {
+                WebElement moreButton = wait.until(
+                        ExpectedConditions.elementToBeClickable(By.cssSelector(MORE_BUTTON_SELECTOR))
+                );
+
+                if (moreButton.isDisplayed() && moreButton.isEnabled()) {
+                    int currentCount = driver.findElements(By.cssSelector("tr.list-body")).size();
+                    moreButton.click();
+                    wait.until(d -> driver.findElements(By.cssSelector("tr.list-body")).size() > currentCount);
+                } else {
+                    break;
+                }
+            } catch (Exception e) {
+                break;
+            }
+        }
+
+        return driver.findElements(By.cssSelector("tr.list-body"));
+    }
+
+    @Override
+    public List<WebElement> getProductLinks() {
+        try {
+            WebDriver driver = driverPool.get(0);
+            return loadAllProductRowsWithDriver(driver);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    @Override
+    public CoupangRequestList collectProducts(WebDriver unusedDriver, int startPage, int endPage,
+                                              ProductViewHandler handler, CoupangRepository repository) {
+
+        CoupangRequestList allRequestList = new CoupangRequestList();
+        ExecutorService driverExecutor = Executors.newFixedThreadPool(driverPool.size());
+        List<Future<CoupangRequestList>> futures = new ArrayList<>();
+
+        for (WebDriver driverInstance : driverPool) {
+            futures.add(driverExecutor.submit(() -> {
+                CoupangRequestList requestList = new CoupangRequestList();
+                WebDriver driver;
+                try {
+                    driver = acquireDriver();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                try {
+                    List<WebElement> rows = loadAllProductRowsWithDriver(driver);
+
+                    ExecutorService rowExecutor = Executors.newFixedThreadPool(driverPool.size());
+                    List<Future<CoupangRequestList>> rowFutures = new ArrayList<>();
+                    System.out.println(rows.size());
+                    for (WebElement row : rows) {
+                        rowFutures.add(rowExecutor.submit(() -> handler.handleFromElement(driver, row, repository)));
+                    }
+
+                    for (Future<CoupangRequestList> f : rowFutures) {
+                        try {
+                            CoupangRequestList r = f.get();
+                            if (r != null) requestList.merge(r);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    rowExecutor.shutdown();
+
+                } finally {
+                    releaseDriver(driver);
+                }
+
+                return requestList;
+            }));
+        }
+
+        for (Future<CoupangRequestList> f : futures) {
+            try {
+                CoupangRequestList r = f.get();
+                if (r != null) allRequestList.merge(r);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        driverExecutor.shutdown();
+        return allRequestList;
+    }
+}

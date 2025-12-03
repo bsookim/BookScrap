@@ -1,0 +1,45 @@
+package com.scrap.dto;
+
+import com.scrap.entity.Book;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public class BookDto {
+	
+	private Long id;
+	
+	private String title;
+	
+	private String price;
+	
+	private String stock;
+	
+	private String descpription;
+	
+	private String upc;
+	
+	private String productType;
+	
+	private String currnetUrl;
+	
+	public BookDto dto(Book book) {
+		
+		this.id=book.getId();
+		this.title=book.getTitle();
+		this.price=book.getPrice();
+		this.stock=book.getStock();
+		this.descpription=book.getDescpription();
+		this.upc=book.getUpc();
+		this.productType=book.getProductType();
+		this.currnetUrl=book.getCurrnetUrl();
+				
+		return new BookDto(book);
+	
+	}
+	
+}

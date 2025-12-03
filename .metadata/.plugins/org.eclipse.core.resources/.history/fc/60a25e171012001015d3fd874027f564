@@ -1,0 +1,71 @@
+package com.coupang.repository;
+
+import java.util.List;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.coupang.dto.response.CoupangDetailItemResponse;
+import com.coupang.entity.CoupangItems;
+import com.coupang.querydsl.CoupangItemsRepositoryCustom;
+
+
+public interface CoupangItemsRepository extends JpaRepository<CoupangItems, Long>,CoupangItemsRepositoryCustom{
+	
+	@Query("SELECT ci FROM CoupangItems ci WHERE ci.itemId IN :itemIds AND ci.coupang.id = :coupangId")
+	List<CoupangItems> findAllByItemIdsAndCoupangId(@Param("itemIds") List<Long> itemIds, @Param("coupangId") Long coupangId);
+	
+	@Query("SELECT ci,cuis " +
+		       "FROM CoupangItems ci " +
+		       "LEFT JOIN CoupangUserItemsStatus cuis ON ci.id = cuis.coupangItems.id " +
+		       "AND cuis.coupangUser.id = :userId " +  
+		       "WHERE ci.coupang.id = :coupangId " +
+		       "AND (cuis.sendYn = 'Y' OR cuis.sendYn IS NOT NULL) " + 
+		       "ORDER BY ci.id")
+	List<CoupangItems> findItemsWithOptionalUserStatusDelete(@Param("coupangId") Long coupangId, 
+													   @Param("userId") int id, 
+													   Pageable pageable
+    );
+	
+	@Query("SELECT ci FROM CoupangItems ci JOIN ci.coupang c " +
+		       "WHERE c.productCode IN :productCodes " + 
+		       "AND ci.itemName IN :itemNames " + 
+		       "AND c.manufacture IN :makeCompanies")
+	List<CoupangItems> findAllByProductCodeIn(
+	    @Param("productCodes") List<String> productCodes,
+	    @Param("itemNames") List<String> itemNames,
+	    @Param("makeCompanies") List<String> makeCompanies
+	);
+
+	@Query("SELECT ci.id " +  // id 값만 선택
+		       "FROM CoupangItems ci " +
+		       "LEFT JOIN CoupangUserItemsStatus cuis ON ci.id = cuis.coupangItems.id " +
+		       "AND cuis.coupangUser.id = :userId " +  
+		       "WHERE ci.coupang.id IN :coupangIds " +  // coupangIds 리스트로 수정
+		       "AND (cuis.sendYn != 'Y' OR cuis.sendYn IS NULL) " + 
+		       "ORDER BY ci.id")
+	List<Long> findCoupangItemIds(@Param("coupangIds") List<Long> coupangIds, @Param("userId") Long userId);
+
+	@Query("SELECT ci FROM CoupangItems ci JOIN FETCH ci.coupang c " +
+		       "WHERE c.productCode IN :productCodes " + 
+		       "AND ci.itemName IN :itemNames " + 
+		       "AND c.manufacture IN :makeCompanies " +
+		       "AND ci.quantity = 0")
+	List<CoupangItems> findItemsByProductCodeInAndQuantity(
+			@Param("productCodes") List<String> productCodes,
+		    @Param("itemNames") List<String> itemNames,
+		    @Param("makeCompanies") List<String> makeCompanies
+			);
+
+	@Query("SELECT ci,cuis " +
+		       "FROM CoupangItems ci " +
+		       "LEFT JOIN CoupangUserItemsStatus cuis ON ci.id = cuis.coupangItems.id " +
+		       "AND cuis.coupangUser.id = :userId " +  
+		       "WHERE ci.coupang.id = :coupangId " +
+		       "AND (cuis.sendYn != 'Y' OR cuis.sendYn IS NULL) " + 
+		       "ORDER BY ci.id")
+	List<CoupangItems> findDeletedItemsWithOptionalUserStatus(Long coupangId, Long userId);
+
+} 

@@ -1,0 +1,52 @@
+package com.scrap.entity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Builder
+public class Books extends BaseTimeEntity{
+
+    @Id 
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(length = 10000)
+    private String title;
+
+    @Column(length = 10000)
+    private String price;
+
+    @Column(length = 10000)
+    private String stock;
+
+    @Column(length = 10000) 
+    private String descpription;
+
+    @Column(length = 10000)
+    private String upc;
+
+    @Column(length = 10000)
+    private String productType;
+
+    @Column(length = 10000)
+    private String currnetUrl;
+
+    @Column(length = 10000)
+    private String thumbNail;
+
+    @ElementCollection
+    @CollectionTable(name = "books_category", joinColumns = @JoinColumn(name = "books_id"))
+    @Column(name = "category") 
+    private List<String> category = new ArrayList<>();
+
+    @OneToMany 
+    @JoinColumn(name="books_id")
+    private List<BooksReply> replyList=new ArrayList<>();
+}

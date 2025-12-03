@@ -1,0 +1,120 @@
+package com.coupang.scrap.options;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+public class ThreeMroOptionHandler implements OptionHandler<String> {
+
+    private final WebDriver driver;
+    private final int index;
+    private final List<OptionHandler<String>> handlers;
+
+    public ThreeMroOptionHandler(WebDriver driver, int index, List<OptionHandler<String>> handlers) {
+        this.driver = driver;
+        this.index = index;
+        this.handlers = handlers;
+    }
+
+    public List<String> getOptions() {
+        List<WebElement> selects = driver.findElements(By.cssSelector(".get_item_options select.it_option"));
+        if (index >= selects.size()) return List.of();
+
+        WebElement selectEl = selects.get(index);
+        return selectEl.findElements(By.tagName("option")).stream()
+                .filter(o -> {
+                    String text = o.getText();
+                    String value = o.getAttribute("value");
+                    return text != null && !text.contains("품절")
+                            && value != null && !value.isBlank() && !value.contains("품절");
+                })
+                .map(o -> o.getAttribute("value"))
+                .collect(Collectors.toList());
+    }
+
+    public void selectOption(String value) throws InterruptedException {
+        List<WebElement> selects = driver.findElements(By.cssSelector(".get_item_options select.it_option"));
+        if (index >= selects.size()) return;
+
+        WebElement selectEl = selects.get(index);
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        List<WebElement> existingOptions = driver.findElements(By.cssSelector("#sit_opt_added li.sit_opt_list input[name^=io_id]"));
+        boolean alreadyAdded = existingOptions.stream()
+                .anyMatch(e -> value.equals(e.getAttribute("value")));
+        if (alreadyAdded) {
+            System.out.println("이미 추가된 옵션: " + value);
+            return;
+        }
+
+        try {
+            new Select(selectEl).selectByValue(value);
+            Thread.sleep(200);
+        } catch (Exception ignored) {}
+
+        try {
+            new Actions(driver).moveToElement(selectEl).click().perform();
+            for (WebElement o : selectEl.findElements(By.tagName("option"))) {
+                if (value.equals(o.getAttribute("value"))) {
+                    o.click();
+                    Thread.sleep(200);
+                    break;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            String script = """
+                var s=arguments[0],v=arguments[1];
+                s.value=v;
+                var ev=document.createEvent('HTMLEvents');
+                ev.initEvent('change',true,true);
+                s.dispatchEvent(ev);
+            """;
+            js.executeScript(script, selectEl, value);
+            Thread.sleep(200);
+        } catch (Exception e) {
+            System.out.println("JS 옵션 선택 실패: " + e.getMessage());
+        }
+
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
+            wait.until(ExpectedConditions.alertIsPresent());
+            Alert alert = driver.switchTo().alert();
+            System.out.println("Alert 감지: " + alert.getText());
+            alert.accept();
+        } catch (Exception ignored) {}
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+        wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.cssSelector("#sit_opt_added li.sit_opt_list")));
+    }
+
+    @Override
+    public List<List<String>> handle(List<String> selectedOptions) throws InterruptedException {
+        List<List<String>> result = new ArrayList<>();
+        List<String> options = getOptions();
+
+        for (String opt : options) {
+            selectOption(opt);
+
+            List<String> newSelection = new ArrayList<>(selectedOptions);
+            newSelection.add(opt);
+
+            if (index + 1 < handlers.size()) {
+                List<List<String>> nextResults = handlers.get(index + 1).handle(newSelection);
+                result.addAll(nextResults);
+            } else {
+                result.add(newSelection);
+            }
+        }
+
+        return result;
+    }
+}

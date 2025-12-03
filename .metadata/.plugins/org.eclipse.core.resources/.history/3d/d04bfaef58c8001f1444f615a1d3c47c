@@ -1,0 +1,68 @@
+package com.shop.selenium.dto;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindAll;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import com.shop.Coupang;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter@NoArgsConstructor
+public class SCoupangStockSearchDto {
+	private WebDriver driver;
+    
+    @FindAll({
+        @FindBy(css = "#searchBoxContainer > div > form > input"),
+        @FindBy(css = "#searchBoxContainerMobile > sip-page-slot > div > form > input")
+    })
+    private WebElement searchTitle;
+    
+    @FindAll({
+        @FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-listing > sip-search-empty-page > div > div > div > h1 > span"),
+        @FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-listing > div.col-sm-9.search-page-container.ng-star-inserted > div > sip-product-search-results > div > h1 > span")
+    })
+    private WebElement searchResult;
+
+    @FindAll({
+    	@FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-listing > div.col-sm-9.search-page-container.ng-star-inserted > div > sip-product-search-results > sip-page-slot > sip-product-list > div > section > div.ng-star-inserted > div > ul > sip-product-list-item > li > div.product-image > div > div")
+    })
+    private WebElement productSoldOutResult;
+ 
+    private List<String> soldOut; 
+    
+    public SCoupangStockSearchDto(WebDriver driver) {
+        this.driver = driver;
+        PageFactory.initElements(driver, this);
+    }
+    
+    public void search(Coupang coupang) {
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(50));
+    	WebElement title = wait.until(ExpectedConditions.visibilityOf(searchTitle));
+    	title.sendKeys(coupang.getProductCode());
+    	title.submit();
+    	title.clear();
+    	WebElement result = wait.until(ExpectedConditions.visibilityOf(searchResult));
+    	
+    	if(result.getText().contains("총")) {
+			System.out.println("있어");
+			if(productSoldOutResult.getText().equals("품절")) {
+				soldOut.add(coupang.getProductCode());
+			}
+		}
+		
+		if(result.getText().contains("검색 결과가 없습니다.")) {
+			System.out.println("없어");
+		}
+    }
+}

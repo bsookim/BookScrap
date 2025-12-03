@@ -1,0 +1,40 @@
+package com.coupang.scrap.view;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+
+public class ProFhisingProductViewHandler implements ProductViewHandler {
+
+    @Override
+    public CoupangRequestList handleFromElement(WebDriver driver, WebElement row, CoupangRepository repository) {
+        CoupangRequestList list = new CoupangRequestList();
+
+        try {
+            // 1. row 클릭해서 팝업 열기
+            row.click();
+
+            // 2. 팝업 로딩 대기 (필요시 WebDriverWait 사용)
+            Thread.sleep(500); // 간단하게 대기, 필요시 wait로 교체 가능
+
+            // 3. 팝업에서 데이터 읽기 (셀렉터는 실제 사이트 구조에 맞게 변경)
+            WebElement popup = driver.findElement(By.cssSelector("div.item_popup")); 
+            String janCode = popup.findElement(By.cssSelector("#I_JAN")).getText();
+            System.out.println(janCode);
+            // 4. repository나 list에 담기
+            // 예시: list.add(new Product(...));
+            // repository.save(productName, productPrice); // 필요시 사용
+
+            // 5. 팝업 닫기
+            popup.findElement(By.cssSelector("button.close")).click();
+
+        } catch (Exception e) {
+            System.out.println("[WARN] handleFromElement 실패: " + e.getMessage());
+        }
+
+        return list;
+    }
+}

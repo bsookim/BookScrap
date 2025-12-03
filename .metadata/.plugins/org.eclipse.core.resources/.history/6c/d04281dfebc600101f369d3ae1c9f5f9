@@ -1,0 +1,14 @@
+package com.scrap.service;
+
+import org.springframework.stereotype.Service;
+
+import com.scrap.repository.BookCategoryRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class CategoryService {
+	
+	private final BookCategoryRepository bookCategoryRepository;
+}

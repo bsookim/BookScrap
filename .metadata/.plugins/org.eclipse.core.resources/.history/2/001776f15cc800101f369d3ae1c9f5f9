@@ -1,0 +1,50 @@
+package com.scrap.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.scrap.entity.BooksReply;
+import com.scrap.repository.BooksReplyRepository;
+import com.scrap.request.BooksReplyRequest;
+import com.scrap.response.BooksReplyResponse;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly=true)
+public class BooksReplyService {
+	
+	private final BooksReplyRepository booksReplyRepository;
+
+	@Transactional
+	public void save(BooksReplyRequest booksReplyRequest) {
+		BooksReply reply= BooksReply.builder()
+				.content(booksReplyRequest.getContent())
+				.build();
+		booksReplyRepository.save(reply);
+	}
+
+	@Transactional
+	public void update(BooksReplyRequest booksReplyRequest) {
+		BooksReply reply = booksReplyRepository.findById(booksReplyRequest.getId()).orElseThrow();
+		reply.updateContent(booksReplyRequest.getContent());
+		booksReplyRepository.save(reply);
+	}
+
+	public List<BooksReplyResponse> booksReplyList() {
+		List<BooksReply> booksReplyList=booksReplyRepository.findAll();
+		
+		List<BooksReplyResponse> booksReplyResponse=new ArrayList<>();
+		for(BooksReply booksReply : booksReplyList) {
+			booksReplyResponse.add(null);
+		}
+		
+		
+		return null;
+	} 
+	
+}

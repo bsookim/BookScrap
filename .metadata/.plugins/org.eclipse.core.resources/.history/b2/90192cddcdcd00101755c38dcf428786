@@ -1,0 +1,57 @@
+package com.scrap.controller;
+
+import java.util.List;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.scrap.service.BookService;
+import com.scrap.dto.BookDto;
+import com.scrap.request.UrlRequest;
+
+import lombok.RequiredArgsConstructor;
+
+@RequestMapping("/book")
+@RequiredArgsConstructor
+@RestController
+@CrossOrigin("http://localhost:5173/")
+public class BookController {
+
+	private final BookService booksService;
+	
+	//컨트롤러 주석
+	@PostMapping("save")
+	public void bookSave(@RequestBody UrlRequest urlRequest) {
+		System.out.println();
+	    booksService.bookSave(urlRequest.getCurrentUrl());
+	}
+	
+	@GetMapping("find/{id}")
+	public BookDto bookFindById(@PathVariable Long id){
+		return booksService.bookFindById(id);
+	}
+
+	@GetMapping("findAll")
+	public List<BookDto> bookFindAll(Pageable pageable){
+		return booksService.bookFindAll(pageable);
+	}
+	
+	@PutMapping("update/{id}")
+	public void bookUpdate(@PathVariable Long id,@RequestParam("title") String title) {
+	    booksService.bookUpdate(id,title);
+	}
+	
+	@DeleteMapping("delete/{id}")
+	public void bookDeleteById(@PathVariable Long id) {
+		booksService.bookDeleteById(id);
+	}
+}

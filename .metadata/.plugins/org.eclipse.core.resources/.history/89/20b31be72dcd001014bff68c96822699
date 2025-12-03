@@ -1,0 +1,27 @@
+package com.scrap.controller;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.scrap.dto.BookCategoryDto;
+import com.scrap.service.BookCategoryService;
+
+import lombok.RequiredArgsConstructor;
+
+@RequestMapping("/bookCategory")
+@RequiredArgsConstructor
+@RestController
+@CrossOrigin("http://localhost:5173/")
+public class BookCategoryController {
+	
+	private final BookCategoryService bookCategoryService;
+	
+	@GetMapping("/list")
+	public List<BookCategoryDto> categoryFindAll() {
+		return bookCategoryService.categoryFindAll();
+	}
+}

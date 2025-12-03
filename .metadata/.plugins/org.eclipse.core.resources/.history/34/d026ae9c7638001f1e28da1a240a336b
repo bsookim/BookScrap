@@ -1,0 +1,12 @@
+package com.shop.entity;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.kick.CoupangContents;
+import com.kick.dto.CoupangContentsRequestDto;
+
+public interface CoupangContentsRepository extends JpaRepository<CoupangContents, Long>{
+
+}

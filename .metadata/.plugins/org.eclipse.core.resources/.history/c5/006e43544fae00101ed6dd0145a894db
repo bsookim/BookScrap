@@ -1,0 +1,416 @@
+package com.coupang.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.coupang.category.CategoryDto;
+import com.coupang.category.NaverCategoryDto;
+import com.coupang.category.NaverExcelDto;
+import com.coupang.entity.Coupang;
+import com.coupang.entity.CoupangUser;
+import com.coupang.entity.Naver;
+import com.coupang.entity.NaverCategory;
+import com.coupang.entity.NaverUserItemsStatus;
+import com.coupang.entity.WholesaleAccount;
+import com.coupang.repository.CoupangRepository;
+import com.coupang.repository.CoupangUserRepository;
+import com.coupang.repository.NaverCategoryRepository;
+import com.coupang.repository.NaverRepository;
+import com.coupang.repository.NaverUserItemsStatusRepository;
+import com.coupang.scrap.dto.CoupangItemSoldOutDto;
+import com.coupang.scrap.excel.dto.NaverDto;
+import com.coupang.scrap.excel.dto.NaverUserItemsStatusDto;
+import com.coupang.scrap.login.LoginSite;
+import com.coupang.scrap.soldout.SoldOutPage;
+import com.coupang.scrap.thread.WebDriverThreadPool;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+import java.io.FileInputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Service
+@Transactional(readOnly=true)
+public class NaverService {
+	
+	private final CoupangUserRepository coupangUserRepository; 
+
+	private final NaverRepository naverRepository; 
+	
+	private final NaverUserItemsStatusRepository naverUserItemsStatusRepository; 
+	
+	private final NaverCategoryRepository naverCategoryRepository;
+	
+	private final String CATEGORY_EXCEL_PATH ="C:\\source\\Coupang\\src\\main\\resources\\categoryList.xls";
+	
+	//등록된 상품 보기
+	public Page<NaverDto> getAllNaverProducts(Pageable pageable, Long id, String searchKeyword) {
+		Page<Naver> navers = naverRepository.searchBySendYnNotYAndDisplayProductName(searchKeyword,pageable);
+
+		return navers.map(n -> NaverDto.builder()
+	        .naverId(n.getNaverId())
+	        .sellerProductCode(n.getSellerProductCode())
+	        .categoryCode(n.getCategoryCode())
+	        .displayProductName(n.getDisplayProductName())
+	        .productStatus(n.getProductStatus())
+	        .originalPrice(n.getOriginalPrice())
+	        .vatAmout(n.getVatAmout())
+	        .stock(n.getStock())
+	        .optionType(n.getOptionType())
+	        .optionName(n.getOptionName())
+	        .optionValue(n.getOptionValue())
+	        .optionStock(n.getOptionStock())
+	        .tuhmbNailImage(n.getTuhmbnailImage())
+	        .subImages(n.getSubImages() != null ? n.getSubImages() : new ArrayList<>())
+	        .description(n.getDescription())
+	        .brand(n.getBrand())
+	        .productOrigin(n.getProductOrigin())
+	        .importCompany(n.getImportCompany())
+	        .isMultiOrigin(n.getIsMultiOrigin())
+	        .origin(n.getOrigin())
+	        .adultOnly(n.getAdultOnly())
+	        .deliveryTemplateCode(n.getDeliveryTemplateCode())
+	        .deliveryType(n.getDeliveryType())
+	        .courierCode(n.getCourierCode())
+	        .shippingFeeType(n.getShippingFeeType())
+	        .baseShippingFee(n.getBaseShippingFee())
+	        .returnShippingFee(n.getReturnShippingFee())
+	        .exchangeShippingFee(n.getExchangeShippingFee())
+	        .afterServiceTemplateCode(n.getAfterServiceTemplateCode())
+	        .afterServicePhone(n.getAfterServicePhone())
+	        .afterServiceGuide(n.getAfterServiceGuide())
+	        .currentUrl(n.getCurrentUrl())
+	        .build());
+	}
+	
+	//삭제 할 상품 보기
+	public Page<NaverDto> getAllDelNaverProducts(Pageable pageable, Long id, String searchKeyword) {
+		Page<Naver> navers = naverRepository.searchBySendYnIsNullAndDisplayProductName(searchKeyword,pageable);
+		
+		return navers.map(n -> NaverDto.builder()
+		        .naverId(n.getNaverId())
+		        .sellerProductCode(n.getSellerProductCode())
+		        .categoryCode(n.getCategoryCode())
+		        .displayProductName(n.getDisplayProductName())
+		        .productStatus(n.getProductStatus())
+		        .originalPrice(n.getOriginalPrice())
+		        .vatAmout(n.getVatAmout())
+		        .stock(n.getStock())
+		        .optionType(n.getOptionType())
+		        .optionName(n.getOptionName())
+		        .optionValue(n.getOptionValue())
+		        .optionStock(n.getOptionStock())
+		        .tuhmbNailImage(n.getTuhmbnailImage())
+		        .subImages(n.getSubImages() != null ? n.getSubImages() : new ArrayList<>())
+		        .description(n.getDescription())
+		        .brand(n.getBrand())
+		        .productOrigin(n.getProductOrigin())
+		        .importCompany(n.getImportCompany())
+		        .isMultiOrigin(n.getIsMultiOrigin())
+		        .origin(n.getOrigin())
+		        .adultOnly(n.getAdultOnly())
+		        .deliveryTemplateCode(n.getDeliveryTemplateCode())
+		        .deliveryType(n.getDeliveryType())
+		        .courierCode(n.getCourierCode())
+		        .shippingFeeType(n.getShippingFeeType())
+		        .baseShippingFee(n.getBaseShippingFee())
+		        .returnShippingFee(n.getReturnShippingFee())
+		        .exchangeShippingFee(n.getExchangeShippingFee())
+		        .afterServiceTemplateCode(n.getAfterServiceTemplateCode())
+		        .afterServicePhone(n.getAfterServicePhone())
+		        .afterServiceGuide(n.getAfterServiceGuide())
+		        .currentUrl(n.getCurrentUrl())
+		        .build());
+	}
+
+	public List<NaverDto> getSelectedNaverData(List<Long> selectedIds) {
+	    return naverRepository.findAllById(selectedIds)
+	            .stream()
+	            .map(NaverDto::new)
+	            .collect(Collectors.toList());
+	}
+	
+	@Transactional
+    public Workbook createWorkbook(List<NaverDto> naverDtos, List<String> headers, NaverExcelDto naverExcelDto) {
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Sheet1");
+        sheet.createRow(0); 
+        
+        Row headerRow = sheet.createRow(1);
+        for (int i = 0; i < headers.size(); i++) {
+            headerRow.createCell(i).setCellValue(headers.get(i));
+        }
+
+        for (int i = 0; i < naverDtos.size(); i++) {
+            NaverDto dto = naverDtos.get(i);
+            Row row = sheet.createRow(i + 2);
+//            int expectedCustomsAgencyFee =dto.getExpectedCustomsAgencyFee();
+//            int originalPrice = dto.getOriginalPrice();
+//            int finalPrice = (int) (Math.round(originalPrice * 1.35 / 10.0) * 10);
+//            finalPrice += (Math.round(expectedCustomsAgencyFee * 1.35 / 10.0) * 10);
+            int expectedCustomsAgencyFee = dto.getExpectedCustomsAgencyFee();
+            int originalPrice = dto.getOriginalPrice();
+
+            int adjustedOriginalPrice = roundToNearestTen(originalPrice * 1.35);
+            int adjustedCustomsFee = roundToNearestTen(expectedCustomsAgencyFee * 1.15);
+
+            int finalPrice = adjustedOriginalPrice + adjustedCustomsFee;
+
+            row.createCell(0).setCellValue(dto.getSellerProductCode());
+            row.createCell(1).setCellValue(naverExcelDto.getCategoryCode());
+            row.createCell(2).setCellValue(dto.getDisplayProductName());
+            row.createCell(3).setCellValue(dto.getProductStatus());
+            
+            row.createCell(4).setCellValue(finalPrice);
+            row.createCell(5).setCellValue(dto.getVatAmout());
+            row.createCell(6).setCellValue(dto.getStock());
+            row.createCell(17).setCellValue(dto.getTuhmbNailImage());
+            row.createCell(18).setCellValue(String.join(",", dto.getSubImages()));
+            row.createCell(19).setCellValue(dto.getDescription());
+            row.createCell(20).setCellValue(dto.getBrand());
+            row.createCell(21).setCellValue(dto.getManufacturer());
+            row.createCell(24).setCellValue(dto.getProductOrigin());
+            row.createCell(25).setCellValue(dto.getImportCompany());
+            row.createCell(26).setCellValue(dto.getIsMultiOrigin());
+            row.createCell(27).setCellValue(dto.getOrigin());
+            row.createCell(28).setCellValue(dto.getAdultOnly());
+            row.createCell(30).setCellValue(dto.getDeliveryType());
+            row.createCell(31).setCellValue(dto.getCourierCode());
+            row.createCell(32).setCellValue(dto.getShippingFeeType());
+            row.createCell(33).setCellValue(dto.getBaseShippingFee());
+            row.createCell(34).setCellValue("선결제");
+            row.createCell(41).setCellValue(dto.getReturnShippingFee());
+            row.createCell(42).setCellValue(dto.getExchangeShippingFee());
+            row.createCell(50).setCellValue(dto.getAfterServiceTemplateCode());
+            row.createCell(51).setCellValue(dto.getAfterServicePhone());
+            row.createCell(52).setCellValue(dto.getAfterServiceGuide());
+        }
+
+        for (int i = 0; i < headers.size(); i++) {
+            sheet.autoSizeColumn(i);
+        }
+        
+        List<Naver> navers = naverRepository.findAllById(naverExcelDto.getSelectedIds());
+        List<Naver> naverList =new ArrayList<>();
+        for(Naver nav : navers) {
+        	nav.setCategoryCode(naverExcelDto.getCategoryCode());
+        	naverList.add(nav);
+        }
+        naverRepository.saveAll(naverList);
+        
+        List<NaverUserItemsStatus> entities = naverDtos.stream()
+                .map(dto -> new NaverUserItemsStatusDto() 
+                        .toEntity(dto) 
+                )
+                .collect(Collectors.toList());
+        
+        naverStatusUpdate(entities);
+        
+        return workbook;
+    }
+
+	private int roundToNearestTen(double value) {
+	    return (int) (Math.round(value / 10.0) * 10);
+	}
+	
+	public void naverStatusUpdate(List<NaverUserItemsStatus> entities) {
+		naverUserItemsStatusRepository.saveAll(entities);
+	}
+	
+	@Transactional
+	public void updateCategories() {
+	    try (FileInputStream fis = new FileInputStream(CATEGORY_EXCEL_PATH)) {
+	        Workbook workbook = WorkbookFactory.create(fis);
+	        Sheet sheet = workbook.getSheetAt(0);
+
+	        List<CategoryDto> excelList = new ArrayList<>();
+	        Iterator<Row> rowIterator = sheet.iterator();
+
+	        if (rowIterator.hasNext()) rowIterator.next();
+
+	        while (rowIterator.hasNext()) {
+	            Row row = rowIterator.next();
+	            if (row == null) continue;
+
+	            String naverCategoryCode = getStringValue(row.getCell(0));
+	            String topCategory = getStringValue(row.getCell(1));
+	            String middleCategory = getStringValue(row.getCell(2));
+	            String thirdCategory = getStringValue(row.getCell(3));
+	            String finalCategory = getStringValue(row.getCell(4));
+
+	            if (naverCategoryCode != null) {
+	                excelList.add(new CategoryDto(naverCategoryCode, topCategory,middleCategory,thirdCategory,finalCategory));
+	            }
+	        }
+
+	        List<NaverCategory> naverExcelCategories = excelList.stream()
+	                .map(dto -> new NaverCategory(dto.getNaverCategoryCode(),
+	                		dto.getTopCategory(),
+	                		dto.getMiddleCategory(),
+	                		dto.getThirdCategory(),
+	                		dto.getFinalCategory()))
+	                .collect(Collectors.toList());
+	        
+	        List<NaverCategory> lists= naverCategoryRepository.findAll();
+	        
+	        if(lists.size() > 0) {
+	        	naverCategoryRepository.deleteAll();
+	        }else {
+	        	naverCategoryRepository.saveAll(naverExcelCategories);
+	        }
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+
+	private String getStringValue(Cell cell) {
+	    if (cell == null) return null;
+	    switch (cell.getCellType()) {
+	        case STRING:
+	            return cell.getStringCellValue().trim();
+	        case NUMERIC:
+	            return String.valueOf((long) cell.getNumericCellValue());
+	        default:
+	            return null;
+	    }
+	}
+
+	public List<NaverCategoryDto> naverCategoryList() {
+		List<NaverCategory> naverCateogry = naverCategoryRepository.findAll();
+		
+		List<NaverCategoryDto> naverCategoryList = naverCateogry.stream().map(n->
+				NaverCategoryDto.builder()
+				.categoryCode(n.getCategoryCode())
+				.topCategory(n.getTopCategory())
+				.middleCategory(n.getMiddleCategory())
+				.thirdCategory(n.getThirdCategory())
+				.finalCategory(n.getFinalCategory())
+				.build()
+		).collect(Collectors.toList());
+		
+		return naverCategoryList;
+	}
+
+	@Transactional
+	public void deleteNaverProducts(List<Long> ids) {
+		naverRepository.deleteAllById(ids);
+	}
+
+	@Transactional
+	public List<CoupangItemSoldOutDto> getNaverInventoryAndUpdate(String url, Long userId) throws MalformedURLException {
+		CoupangUser coupangUser = coupangUserRepository.findById(userId)
+	            .orElseThrow(() -> new IllegalArgumentException("해당 User ID의 CoupangUser가 존재하지 않습니다. userId=" + userId));
+		System.out.println(coupangUser.getEmail());
+
+		String domain = new URL(url).getHost();
+	    LoginSite loginSite = LoginSite.fromDomain(domain);
+	    if (loginSite == null) {
+	        throw new IllegalArgumentException("지원하지 않는 도메인입니다: " + domain);
+	    }
+
+	    SoldOutPage soldOutPage = loginSite.createSoldOutPage();
+	    List<Naver> naverStockList = naverRepository.findAllByBrandAndSendYn(); //여기 데이터가 없으면 
+	    System.out.println(naverStockList.size());
+	    List<String> productUrls = naverStockList.stream()
+	                                               .map(Naver::getCurrentUrl)
+	                                               .collect(Collectors.toList());
+	    BlockingQueue<WebDriver> driverPool = new LinkedBlockingQueue<>();
+
+	    ExecutorService executor = WebDriverThreadPool.getExecutor();
+	    List<Future<List<CoupangItemSoldOutDto>>> futures = new ArrayList<>();
+
+	    int THREAD_COUNT = 4;
+	    for (int i = 0; i < THREAD_COUNT; i++) {
+	        WebDriver driver = new ChromeDriver();
+	        try {
+	        } catch (Exception e) {
+	            driver.quit();
+	            throw new RuntimeException("로그인 실패", e);
+	        }
+	        driverPool.add(driver);
+	    }
+	    
+	    for (String productUrl : productUrls) {
+	        futures.add(executor.submit(() -> {
+	            WebDriver driver = driverPool.take();
+	            try {
+	                return soldOutPage.getSoldOutProducts(driver, List.of(productUrl));
+	            } finally {
+	                driverPool.offer(driver);
+	            }
+	        }));
+	    }
+
+	    List<CoupangItemSoldOutDto> soldOutDtos = new ArrayList<>();
+	    for (Future<List<CoupangItemSoldOutDto>> future : futures) {
+	        try {
+	            List<CoupangItemSoldOutDto> result = future.get();
+	            if (result != null) soldOutDtos.addAll(result);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+	    }
+	    System.out.println("=======마지막========");
+	    System.out.println(soldOutDtos.size());
+	    
+	    List<NaverUserItemsStatus> status = soldOutDtos.stream().map(s->{
+	    	Naver naver = naverRepository.findBySellerProductCode(s.getProductCode());
+	    	NaverUserItemsStatus userItemsStatus= new NaverUserItemsStatus();
+	    	userItemsStatus.setSellerProductCode(s.getProductCode());
+	    	userItemsStatus.setSendYn("");
+	    	userItemsStatus.setQuantity(0);
+	    	userItemsStatus.setNaverProductId(naver.getNaverId());
+	    	System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+	    	System.out.println(userItemsStatus.getSellerProductCode());
+	    	System.out.println(userItemsStatus.getSendYn());
+	    	System.out.println(userItemsStatus.getQuantity());
+	    	System.out.println(userItemsStatus.getNaverProductId());
+	    	System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+	    	return userItemsStatus;
+	    }).collect(Collectors.toList());
+	    
+	    if(status.size()>0) {
+	    	updateNaverStockStatus(status);
+	    }
+	    for (WebDriver driver : driverPool) {
+	        try { driver.quit(); } catch (Exception ignored) {}
+	    }
+	    return soldOutDtos;
+	}
+
+	public void updateNaverStockStatus(List<NaverUserItemsStatus> status) {
+		naverUserItemsStatusRepository.saveAll(status);
+	}
+
+	@Transactional
+	public void deleteCoupangs(List<Long> ids) {
+		naverRepository.deleteAllById(ids);
+	}
+
+}

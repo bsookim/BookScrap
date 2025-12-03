@@ -1,0 +1,47 @@
+package com.coupang.service;
+
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import com.coupang.repository.CoupangUserRepository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.coupang.dto.response.CoupangWholesaleDto;
+import com.coupang.entity.CoupangUser;
+import com.coupang.entity.WholesaleAccount;
+import com.coupang.repository.CoupangWholSaleRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class CoupangWholeSaleService {
+	
+	private final CoupangWholSaleRepository coupangWholSaleRepository; 
+	
+	private final CoupangUserRepository  coupangUserRepository;
+	
+	@Transactional
+	public void coupangApiKeySave(CoupangWholesaleDto coupangWholesaleDto) {
+		
+		CoupangUser coupangUser = coupangUserRepository.findById(coupangWholesaleDto.getUserId())
+							.orElseThrow(() -> new IllegalArgumentException("해당 ID의 사용자를 찾을 수 없습니다. userId=" + coupangWholesaleDto.getUserId()));
+
+		WholesaleAccount account = WholesaleAccount.builder()
+		        .siteName(coupangWholesaleDto.getSiteName())
+		        .username(coupangWholesaleDto.getUsername())
+		        .password(coupangWholesaleDto.getPassword())
+		        .active(coupangWholesaleDto.isActive())
+		        .coupangUser(coupangUser) 
+		        .build();
+		if(account==null) {
+			coupangWholSaleRepository.save(account);
+		}else {
+			account.setSiteName(coupangWholesaleDto.getSiteName());
+			account.setUserName(coupangWholesaleDto.getUsername());
+			account.setPassword(coupangWholesaleDto.getPassword());
+			coupangWholSaleRepository.save(account);
+		}
+	}
+	
+}

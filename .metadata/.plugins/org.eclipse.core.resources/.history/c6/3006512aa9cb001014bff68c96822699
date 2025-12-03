@@ -1,0 +1,43 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import "../styles/reply.css";
+
+const Reply = ({ books_id, onAdd }) => {
+  const [content, setContent] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await axios.post(
+        'http://localhost:8080/books/reply/save',
+        { content, books_id }
+      );
+      onAdd(res.data);
+      alert("저장 완료!");
+      setContent("");
+    } catch (error) {
+      console.error('저장 실패:', error);
+      alert("저장 실패");
+    }
+  };
+
+  return (
+    <div className="reply-container">
+      <div className="reply-card">
+        <form className="reply-form" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            className="reply-input"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="댓글을 입력하세요"
+          />
+          <button type="submit" className="reply-btn">저장</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Reply;

@@ -1,0 +1,102 @@
+package com.shop.selenium.dto;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindAll;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+
+import lombok.Getter;
+
+@Getter
+public class SCoupangDto {
+	
+	private WebDriver driver;
+	
+	@FindAll({
+		@FindBy(css="#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > div.infoArea > h2"),
+		@FindBy(css="#df-product-detail > div > div.infoArea-wrap > div > div > div.scroll-wrapper.df-detail-fixed-scroll.scrollbar-macosx > div.df-detail-fixed-scroll.scrollbar-macosx.scroll-content > div.headingArea > h2"),
+		@FindBy(css="#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > div.buy-wrapper > div.buy-scroll-box > h2"),
+		@FindBy(css="body > main > div.page-content.container.main-wrapper > sip-product-details-page > sip-product-details > div > sip-product-title > div > h1") //코스트코
+	})
+	private WebElement title;
+	
+	@FindAll({
+		@FindBy(css="#span_product_price_text"),
+		@FindBy(css="#span_product_price_sale"),
+		@FindBy(css="body > main > div.page-content.container.main-wrapper > sip-product-details-page > sip-product-details > div > "
+				+ "div.header-content-container.col-xs-12.col-sm-12.col-md-6.col-tab-6.ng-star-inserted > div > div > div > div > "
+				+ "div.product-price.ng-star-inserted > div > sip-product-price-panel > div > div.price-with-discount.ng-star-inserted > "
+				+ "div.price-after-discount > div > span") //코스트코
+	})
+	private WebElement price;
+	
+	@FindAll({
+		@FindBy(css="#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > div.infoArea > div.xans-element-.xans-product.xans-product-detaildesign > table > tbody > tr"),
+		@FindBy(css="#df-product-detail > div > div.infoArea-wrap > div > div > div.scroll-wrapper.df-detail-fixed-scroll.scrollbar-macosx > div.df-detail-fixed-scroll.scrollbar-macosx.scroll-content > div.xans-element-.xans-product.xans-product-detaildesign > table > tbody > tr"),
+	})
+	private List<WebElement> productList = new ArrayList<>();
+	
+	@FindAll({
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > "
+				+ "div.xans-element-.xans-product.xans-product-image.imgArea > "
+				+ "div.keyImg > a > img"),
+		@FindBy(css="#contents > div.xans-element-.xans-product.xans-product-detail > div.detailArea > "
+				+ "div.xans-element-.xans-product.xans-product-image.imgArea > "
+				+ "div.keyImg.item > div.thumbnail > a > img"),
+		@FindBy(css="#df-product-detail > div > div.imgArea-wrap > div > div > div.thumbnail > span > img"),
+		@FindBy(css="body > main > div.page-content.container.main-wrapper > sip-product-details-page > sip-product-details > div > "
+				+ "sip-product-image-panel > div > div > div.primary-image-wrapper > div.primary-image > div:nth-child(1) > "
+				+ "div > sip-image-zoom > div > sip-media:nth-child(1) > picture > img")
+	})
+	private List<WebElement> thumbLists =new ArrayList<>();
+	
+	@FindAll({
+		@FindBy(css = "#prdDetail *"),
+		@FindBy(css = "body > main > div.page-content.container.main-wrapper > sip-product-details-page > sip-product-details > div > div.row.ng-star-inserted > sip-additional-product-info > div.pdp-tabs-container.col-xs-12.col-md-8.ng-star-inserted *")
+	})
+	private List<WebElement> detailImageLists =new ArrayList<>();
+	
+	@FindAll({
+		@FindBy(css ="#contents > div.xans-element-.xans-product.xans-product-detail > "
+				+ "div.detailArea > div.infoArea > "
+				+ "table > tbody > tr > td > select"),
+		@FindBy(css = "#contents > div.xans-element-.xans-product.xans-product-detail > "
+				+ "div.detailArea > div.infoArea > "
+				+ "div.buy_wrap.top > div.buy_box > "
+				+ "div > div > div > div.scrollbar_box.op_list_h "
+				+ "> table > "
+				+ "tbody.xans-element-.xans-product.xans-product-option.xans-record- > "
+				+ "tr >td > select"),
+		@FindBy(css="#df-product-detail > div > "
+				+ "div.infoArea-wrap > div > div > "
+				+ "div.scroll-wrapper.df-detail-fixed-scroll.scrollbar-macosx >"
+				+ "div.df-detail-fixed-scroll.scrollbar-macosx.scroll-content >"
+				+ "ul > li > ul > li > select"),
+		@FindBy(css="#variant-selector")
+	})
+	private List<WebElement> selectBox = new ArrayList<>();
+
+	@FindAll({
+		@FindBy(css="#contents > div.xans-element-.xans-product.xans-product-detail > "
+				+ "div.detailArea > div.buy-wrapper > div.buy-scroll-box > div.infoArea > "
+				+ "table > tbody.xans-element-.xans-product.xans-product-option.xans-record- > "
+				+ "tr > td > ul >li > label")
+	})
+	private List<WebElement> radioBox = new ArrayList<>();
+	
+	@FindBy(css="#contents > div.xans-element-.xans-product.xans-product-detail > "
+			+ "div.detailArea > div.buy-wrapper > div.buy-scroll-box > div.infoArea > "
+			+ "div.xans-element-.xans-product.xans-product-detaildesign > table > "
+			+ "tbody > tr > td > span")
+	private WebElement detailText;
+	
+	public SCoupangDto(WebDriver driver) {
+		this.driver = driver;
+        PageFactory.initElements(driver, this);
+	}
+	
+}

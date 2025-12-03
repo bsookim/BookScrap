@@ -1,0 +1,24 @@
+package com.scrap.response;
+
+import com.scrap.entity.BooksReply;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class BooksReplyResponse {
+	
+	private String content;
+	
+	public static BooksReplyResponse booksReplyResponse(BooksReply booksReply) {
+		return BooksReplyResponse.builder()
+					.content(booksReply.getContent())
+					.build();
+					
+	}
+}

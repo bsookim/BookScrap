@@ -1,0 +1,1145 @@
+package com.coupang.service;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Duration;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.openqa.selenium.Alert;
+import org.openqa.selenium.By;
+import org.openqa.selenium.ElementNotInteractableException;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.NoAlertPresentException;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.NoSuchSessionException;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.UnhandledAlertException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.edge.EdgeOptions;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Value;import org.springframework.boot.autoconfigure.service.connection.ConnectionDetailsFactoryNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.coupang.api.key.CoupangApiKey;
+import com.coupang.cloudflare.CloudflareImageUploaderApi;
+import com.coupang.cloudflare.dto.CloudFlareImageCreate;
+import com.coupang.dto.created.CoupangAttributesCreateDto;
+import com.coupang.dto.created.CoupangContentsCreateDto;
+import com.coupang.dto.created.CoupangCreateDto;
+import com.coupang.dto.created.CoupangDetailsCreateDto;
+import com.coupang.dto.created.CoupangImagesCreateDto;
+import com.coupang.dto.created.CoupangItemsCreateDto;
+import com.coupang.dto.created.CoupangStocksCreateDto;
+import com.coupang.dto.response.CoupangApiDetailResponse;
+import com.coupang.dto.response.CoupangDeleteProductResponse;
+import com.coupang.dto.response.CoupangDetailItemResponse;
+import com.coupang.dto.response.CoupangDto;
+import com.coupang.dto.response.CoupangItemStatusDTO;
+import com.coupang.entity.Coupang;
+import com.coupang.entity.CoupangAttributes;
+import com.coupang.entity.CoupangContents;
+import com.coupang.entity.CoupangDetails;
+import com.coupang.entity.CoupangImages;
+import com.coupang.entity.CoupangItems;
+import com.coupang.entity.CoupangUserItemsStatus;
+import com.coupang.hamc.product.client.CoupangProductClient;
+import com.coupang.repository.CoupangApiKeyRepository;
+import com.coupang.repository.CoupangAttributesRepository;
+import com.coupang.repository.CoupangContentsRepository;
+import com.coupang.repository.CoupangDetailsRepository;
+import com.coupang.repository.CoupangImagesRepository;
+import com.coupang.repository.CoupangItemsRepository;
+import com.coupang.repository.CoupangRepository;
+import com.coupang.repository.CoupangUserItemsStatusRepository;
+import com.coupang.selenium.dto.CoupangJsoupInfoDto;
+import com.coupang.selenium.dto.CoupangStocksDto;
+import com.coupang.selenium.dto.SCoupangCafeDto;
+import com.coupang.selenium.dto.SCoupangOptionClicker;
+import com.coupang.selenium.dto.SeleniumSessionManager;
+import com.coupang.selenium.login.SCoupangCafeLoginDto;
+import com.coupang.selenium.page.SCoupangCafePageDto;
+import com.coupang.selenium.page.SCoupangCafeScrollDto;
+import com.coupang.utils.ProductUtils;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class CoupangCafe24Service {
+
+	private static final int BATCH_SIZE = 1000;
+
+	private final CoupangRepository coupangRepository;
+	private final CoupangItemsRepository coupangItemsRepository;
+	private final CoupangImagesRepository coupangImagesRepository;
+	private final CoupangAttributesRepository coupangAttributesRepository;
+	private final CoupangDetailsRepository coupangDetailsRepository;
+	private final CoupangContentsRepository coupangContentsRepository;
+
+	private final CoupangUserItemsStatusRepository coupangUserItemsStatusRepository;
+	
+	private final CoupangApiKeyRepository coupangApiKeyRepository;
+	
+	private final CoupangProductClient coupangProductClient;
+	
+	private final CloudflareImageUploaderApi cloudflareImageUploaderApi;
+	
+	@Value("${file.detail-dir}")
+	private String detailDir;
+
+	@Value("${file.thmb-dir}")
+	private String thmbDir;
+
+	public void loginUrl(String username, String password, String url, int startPage, int endPage)
+			throws InterruptedException, IOException {
+		EdgeOptions options = new EdgeOptions();
+		options.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+	    options.addArguments("--start-maximized"); // 브라우저 창 최대화
+//		options.addArguments("--headless"); // 브라우저 창 숨김
+//		options.addArguments("--disable-gpu"); // GPU 비활성화
+//		options.addArguments("--inprivate"); // InPrivate 모드
+
+		WebDriver driver = new EdgeDriver(options);
+		driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+//	    CustomWebDriverListener eventListener = new CustomWebDriverListener(baseDriver);
+//	    EventFiringDecorator<WebDriver> decorator = new EventFiringDecorator<>(eventListener);
+		// 로그인 실행
+		SCoupangCafeLoginDto login = new SCoupangCafeLoginDto(driver);
+		
+		login.click(username, password, url);
+
+		productPage(driver, username, password, url, startPage, endPage);
+
+		driver.quit();
+	}
+
+	private void productPage(WebDriver driver, String username, String password, String companyUrl, int startPage,
+			int endPage) throws InterruptedException, IOException {
+		URL hosts = new URL(companyUrl);
+	    String hostUrls = hosts.getHost();
+	    List<String> urls = null;
+	    if (hostUrls.contains("www.2bpet.co.kr")) {
+			SCoupangCafePageDto page = new SCoupangCafePageDto(driver);
+			urls = page.productNextPage(startPage, endPage);
+	    }else if(hostUrls.contains("pettob.co.kr")) {
+			SCoupangCafePageDto page = new SCoupangCafePageDto(driver);
+			urls = page.productNextPage(startPage, endPage);
+	    }else if(hostUrls.contains("offrun.kr")) {
+			SCoupangCafeScrollDto scrolls= new SCoupangCafeScrollDto(driver);
+			urls =scrolls.collectProductsByInfiniteScroll();
+	    }
+		List<Coupang> coupangList = new ArrayList<>();
+		List<CoupangItems> itemsList = new ArrayList<>();
+		List<CoupangImages> imagesList = new ArrayList<>();
+		List<CoupangContents> contentsList = new ArrayList<>();
+		List<CoupangDetails> detailsList = new ArrayList<>();
+		List<CoupangAttributes> attributesList = new ArrayList<>();
+
+		for (String url : urls) {
+		    try {
+		    	driver.navigate().to(url); 
+
+
+		    } catch (UnhandledAlertException e) {
+		        try {
+		            Alert alert = driver.switchTo().alert();
+		            System.out.println("❌ Alert 발생: " + alert.getText());
+		            alert.accept(); 
+		        } catch (NoAlertPresentException ignored) {}
+		        	continue;
+		    } catch (TimeoutException e) {
+		    	System.out.println(e.getMessage());
+		    }
+		    URL host = new URL(url);
+		    String hostUrl = host.getHost();
+
+		    SCoupangCafeDto dto = new SCoupangCafeDto(driver);
+		    FluentWait<WebDriver> wait = dto.getFluentWait(20);
+		    CoupangJsoupInfoDto jsoupDto = new CoupangJsoupInfoDto(hostUrl);
+		    Map<String, String> selectors = jsoupDto.getSelectors();
+		    wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("#Frm > div > div.infoWrap > div > h1,#root > div > div.css-dkv91k > div.css-r5bf55 > div.css-1ywi84u > div.css-1wijwsd")));
+
+		    String pageSource = driver.getPageSource();
+		    Document doc = Jsoup.parse(pageSource);
+		    
+		    wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(selectors.get("title"))));
+		    String useImageSelector = jsoupDto.getSelector("useImages");
+		    String subContentSelector = jsoupDto.getSelector("subContent");
+
+		    if (useImageSelector == null || useImageSelector.isBlank() ||
+		        subContentSelector == null || subContentSelector.isBlank()) {
+		        continue;
+		    }
+		    Element useImage = doc.selectFirst(useImageSelector);
+		    Element useSubContent = doc.selectFirst(subContentSelector);
+
+		    String subContentText = (useSubContent != null) ? useSubContent.text() : "";
+
+		    if (useImage == null || !"가능".equals(useImage.text().trim()) || subContentText.contains("쿠팡")) {
+		        continue;
+		    }
+		    Element titleElement = doc.selectFirst(selectors.get("title"));
+		    Element productCodeElement = doc.selectFirst(selectors.get("productCode"));
+		    Elements selectBoxElements = doc.select(selectors.get("selectBox"));
+		    Element sellingPriceElement = doc.selectFirst(selectors.get("sellingPrice"));
+		    Element priceElement = doc.selectFirst(selectors.get("price"));
+		    String text = (priceElement != null && priceElement.text() != null && !priceElement.text().isEmpty()) 
+		                  ? priceElement.text() 
+		                  : null;
+
+		    String price = (priceElement != null && priceElement.val() != null && !priceElement.val().isEmpty()) 
+		                  ? priceElement.val() 
+		                  : text;
+		    String ogiPrice = (sellingPriceElement != null && sellingPriceElement.text() != null) 
+	                  ? sellingPriceElement.text() 
+	                          : null;
+		    String priceStr = (sellingPriceElement != null && ogiPrice.isEmpty()) 
+	                  ? sellingPriceElement.val() 
+	                  : ogiPrice;
+		    if (titleElement != null) {
+		        jsoupDto.cleanTitleAndExtractBrand(titleElement);
+		    }
+
+		    String codeText = productCodeElement.text();
+		    String code = (codeText != null && !codeText.trim().isEmpty())
+		        ? codeText
+		        : productCodeElement.val();
+		    
+		    if(hostUrls.contains("offrun.kr")) {
+		    	code = code.replaceAll("[^0-9]", "");
+		    }
+
+		    String title = jsoupDto.getTitle();
+		    String brand = jsoupDto.getBrand();
+		    String makeCompany = jsoupDto.getSelectors().get("makeCompany");
+
+		    int convertedPrice = ProductUtils.productPriceConverter(price);
+		    int originalPrice = ProductUtils.productPriceConverter(priceStr);
+		    int optionPrice = 0;
+		    Integer existCode = coupangRepository.existsByProductCode(code);
+		    if (existCode == null || existCode == 0) {
+		        StringBuilder sbDetailFileName = new StringBuilder();
+		        String iframeUrl = dto.getIframeUrls(doc, new StringBuilder());
+		        
+		        String thmbUrl = dto.getThmbImageUrls(new StringBuilder(), wait);
+		        if (thmbUrl == null||thmbUrl.equals("")) {
+		            System.out.println("썸네일 이미지 업로드 실패, 상품 스킵: " + url);
+		            continue;
+		        } 
+		        CloudFlareImageCreate thmbUploadResult = cloudflareImageUploaderApi.upload(thmbUrl, true);
+		        
+		        if (thmbUploadResult != null) {
+		            thmbUrl = thmbUploadResult.getCloudFlareImageurl();
+		        }
+		        
+		        JavascriptExecutor js = (JavascriptExecutor) driver;
+		        js.executeScript("window.scrollBy(0, 500);");
+
+		        List<String> detailUrls = dto.getDetailImageUrls(new StringBuilder(), wait);
+		        String deliveryInformation = dto.getDeliveryInformation(new StringBuilder());
+
+		        sbDetailFileName.append("<p align='center'>");
+		        sbDetailFileName.append(iframeUrl);
+		        CloudFlareImageCreate result =null;
+		        String cloudFlareDetailImageId=null;
+		        String cloudFlareDetailImageUrl =null;
+		        for (String detailUrl : detailUrls) {
+		            result = cloudflareImageUploaderApi.upload(detailUrl, false);
+		            if (result != null) {
+		                cloudFlareDetailImageId=result.getCloudFlareImageId();
+				        cloudFlareDetailImageUrl =result.getCloudFlareImageurl();
+		                sbDetailFileName.append("<img src='")
+		                                .append(result.getCloudFlareImageurl())
+		                                .append("' style='width:100%; height:auto; display:block; margin:0 auto;'/>");
+		            }
+		        }
+		        
+		        sbDetailFileName.append(deliveryInformation);
+		        sbDetailFileName.append("</p>");
+		        String selectBoxEnabled = "F|".repeat(selectBoxElements.size());
+		        String cloudFlareImageUrl=null;
+		        if(thmbUploadResult.getCloudFlareImageurl()!=null) {
+		        	cloudFlareImageUrl = thmbUploadResult.getCloudFlareImageurl();
+		        }
+		        
+		        String cloudFlareImageId= null;
+		        if(thmbUploadResult.getCloudFlareImageId()!=null) {
+		        	thmbUploadResult.getCloudFlareImageId();
+		        }
+		       
+		        CoupangCreateDto coupangCreateDto = CoupangCreateDto.builder()
+		                .sellerProductName(title)
+		                .vendorId("A00962060")
+		                .displayProductName(title)
+		                .saleStartedAt("2024-01-19T00:00:00")
+		                .saleEndedAt("2099-01-19T00:00:00")
+		                .deliveryMethod("SEQUENCIAL")
+		                .deliveryCompanyCode("EPOST")
+		                .deliveryChargeType("NOT_FREE")
+		                .deliveryCharge(3000)
+		                .freeShipOverAmount(30000)
+		                .deliveryChargeOnReturn(3000)
+		                .remoteAreaDeliverable("N")
+		                .unionDeliveryType("NOT_UNION_DELIVERY")
+		                .returnCenterCode("1001694769")
+		                .returnChargeName("경기도 안산시 상록구 충장로 565 111동1203호")
+		                .companyContactNumber("010-8900-6085")
+		                .returnZipCode("15287")
+		                .returnAddress("경기도 안산시 상록구 충장로 565")
+		                .returnAddressDetail("111동1203호")
+		                .returnCharge(3000)
+		                .outboundShippingPlaceCode(19389011)
+		                .vendorUserId("qudtn0295")
+		                .requested(true)
+		                .manufacture(makeCompany)
+		                .brand(brand)
+		                .productCode(code)
+		                .currentUrl(driver.getCurrentUrl())
+		                .build();
+
+		        Coupang coupang = CoupangCreateDto.toEntity(coupangCreateDto);
+		        coupangList.add(coupang);
+		        if (!selectBoxElements.isEmpty()) {
+		        	processOptions(
+		        		    driver,
+		        		    doc,
+		        		    selectBoxElements,
+		        		    0,
+		        		    new ArrayList<>(), 
+		        		    coupang,
+		        		    convertedPrice,
+		        		    cloudFlareImageUrl,
+		        		    cloudFlareImageId,
+		        		    cloudFlareDetailImageId,
+		        		    cloudFlareDetailImageUrl,
+		        		    thmbUrl,
+		        		    sbDetailFileName.toString(),
+		        		    selectBoxEnabled,
+		        		    originalPrice,
+		        		    optionPrice,
+		        		    itemsList,
+		        		    imagesList,
+		        		    contentsList,
+		        		    detailsList,
+		        		    attributesList
+		        		);
+		        } else {
+		            coupangSingleProductSave(coupang, title, convertedPrice,originalPrice,
+		            		cloudFlareImageUrl,
+		            		cloudFlareImageId,
+		            		cloudFlareDetailImageId,
+		            		cloudFlareDetailImageUrl,thmbUrl, sbDetailFileName.toString(), itemsList, imagesList, contentsList, detailsList, attributesList);
+		        }
+		    }
+		}
+		CoupangProductSave(coupangList, itemsList, imagesList, attributesList, detailsList, contentsList);
+	}
+
+	private void coupangSingleProductSave(
+		    Coupang coupang,
+		    String optionName,
+		    int price,
+		    int originalPrice, String cloudFlareImageUrl,
+		    String cloudFlareImageId,
+		    String cloudFlareDetailImageId,
+		    String cloudFlareDetailImageUrl,
+		    String thmb,
+		    String detailImages,
+		    List<CoupangItems> items,
+		    List<CoupangImages> images,
+		    List<CoupangContents> contents,
+		    List<CoupangDetails> details,
+		    List<CoupangAttributes> attributes
+		) {
+		    CoupangItems coupangItem = CoupangItems.builder()
+		        .coupang(coupang)
+		        .itemName(optionName)
+		        .originalPrice(originalPrice)
+		        .salePrice(price)
+		        .maximumBuyCount(10)
+		        .maximumBuyForPerson(0)
+		        .maximumBuyForPersonPeriod(1)
+		        .outboundShippingTimeDay(3)
+		        .unitCount(0)
+		        .adultOnly("EVERYONE")
+		        .taxType("TAX")
+		        .parallelImported("NOT_PARALLEL_IMPORTED")
+		        .overseasPurchased("NOT_OVERSEAS_PURCHASED")
+		        .pccNeeded(false)
+		        .build();
+		    items.add(coupangItem);
+		    
+		    CoupangImages coupangImage = CoupangImages.builder()
+		        .imageOrder(0)
+		        .imageType("REPRESENTATION")
+		        .vendorPath(thmb)
+		        .coupangItems(coupangItem)
+		        .coupang(coupang)
+		        .cloudFlareImageId(cloudFlareImageId)
+		        .cloudFlareImageurl(cloudFlareImageUrl)
+		        .build();
+		    images.add(coupangImage);
+
+		    CoupangContents coupangContent = CoupangContents.builder()
+		        .contentsType("TEXT")
+		        .coupangItems(coupangItem)
+		        .coupang(coupang)
+		        .build();
+		    contents.add(coupangContent);
+
+		    CoupangDetails coupangDetail = CoupangDetails.builder()
+		        .content(detailImages)
+		        .detailType("TEXT")
+		        .coupangContents(coupangContent)
+		        .coupang(coupang)
+		        .cloudFlareImageId(cloudFlareDetailImageId)
+		        .cloudFlareImageUrl(cloudFlareDetailImageUrl)
+		        .build();
+		    details.add(coupangDetail);
+		}
+
+	private int extractOptionPrice(String optionName) {
+	    if (optionName == null) return 0;
+	    Matcher matcher = Pattern.compile("옵션가[:：]?\\+?\\s*([\\d,]+)원").matcher(optionName);
+	    if (matcher.find()) {
+	        String number = matcher.group(1).replaceAll(",", "");
+	        try {
+	            return Integer.parseInt(number);
+	        } catch (NumberFormatException e) {
+	            return 0;
+	        }
+	    }
+	    return 0;
+	}
+
+	private String normalizeOptionName(String optionName) {
+	    if (optionName == null) return "";
+	    return optionName
+	        .replaceAll("\\(\\s*품절\\s*\\)", "")
+	        .replaceAll("\\(\\s*재고\\s*:?\\s*\\d+개\\s*\\)", "")
+	        .replaceAll("\\(.*?옵션가.*?\\)", "")  // 옵션가 제거
+	        .replaceAll("\\s+", " ")
+	        .trim();
+	}
+
+	public void processOptions(
+	    WebDriver driver,
+	    Document doc,
+	    Elements selectBoxElements,
+	    int index,
+	    List<String> selectedOptions,
+	    Coupang coupang,
+	    int convertedPrice,
+	    String cloudFlareImageUrl,
+	    String cloudFlareImageId,
+	    String cloudFlareDetailImageId,
+	    String cloudFlareDetailImageUrl,
+	    String thumbnail,
+	    String detailImages,
+	    String selectBoxEnabled,
+	    int originalPrice,
+	    int optionPrice,
+	    List<CoupangItems> itemsList,
+	    List<CoupangImages> imagesList,
+	    List<CoupangContents> contentsList,
+	    List<CoupangDetails> detailsList,
+	    List<CoupangAttributes> attributesList
+	) {
+
+	    if (index >= selectBoxElements.size()) {
+	        String combinedOption = String.join(" ", selectedOptions);
+	        combinedOption = normalizeOptionName(combinedOption);
+
+	        String firstOption = selectedOptions.size() > 0 ? normalizeOptionName(selectedOptions.get(0)) : "";
+	        String secondOption = selectedOptions.size() > 1 ? normalizeOptionName(selectedOptions.get(1)) : "";
+	        String thirdOption = selectedOptions.size() > 2 ? normalizeOptionName(selectedOptions.get(2)) : "";
+
+	        handleResults(coupang, combinedOption, convertedPrice, originalPrice, optionPrice,
+	            cloudFlareImageUrl, cloudFlareImageId,
+	            cloudFlareDetailImageId, cloudFlareDetailImageUrl,
+	            thumbnail, detailImages, selectBoxEnabled,
+	            firstOption, secondOption, thirdOption,
+	            itemsList, imagesList, contentsList, detailsList, attributesList);
+	        return;
+	    }
+
+	    Element selectBoxElement = selectBoxElements.get(index);
+	    Elements optionElements = selectBoxElement.select("option");
+	    optionElements.remove(0);
+
+	    for (Element option : optionElements) {
+	        String optionText = option.text().trim();
+
+	        if (!reselectPreviousOptions(driver, index, selectedOptions)) {
+	            System.out.println("이전 옵션 재선택 실패 (index: " + index + ")");
+	            continue;
+	        }
+
+	        String selectedOption = selectCustomOption(driver, index, optionText);
+	        if (selectedOption == null) {
+	            System.out.println("옵션 선택 실패: " + optionText);
+	            continue;
+	        }
+
+	        List<String> newSelectedOptions = new ArrayList<>(selectedOptions);
+	        newSelectedOptions.add(selectedOption);
+
+	        int extractedOptionPrice = optionPrice + extractOptionPrice(optionText);
+
+	        processOptions(driver, doc, selectBoxElements, index + 1,
+	            newSelectedOptions, coupang, convertedPrice,
+	            cloudFlareImageUrl, cloudFlareImageId,
+	            cloudFlareDetailImageId, cloudFlareDetailImageUrl,
+	            thumbnail, detailImages, selectBoxEnabled, originalPrice, extractedOptionPrice,
+	            itemsList, imagesList, contentsList, detailsList, attributesList);
+	    }
+	}
+
+	private boolean reselectPreviousOptions(WebDriver driver, int currentIndex, List<String> selectedOptions) {
+	    for (int i = 0; i < currentIndex; i++) {
+	        String expectedOption = selectedOptions.get(i);
+	        String actualOption = selectCustomOption(driver, i, expectedOption);
+	        if (actualOption == null || !actualOption.contains(expectedOption)) {
+	            System.out.println("재선택 실패: " + expectedOption);
+	            return false;
+	        }
+	    }
+	    return true;
+	}
+
+	public String selectCustomOption(WebDriver driver, int selectIndex, String optionText) {
+	    try {
+	        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+	        List<WebElement> dropdownButtons = driver.findElements(By.cssSelector("#optSel > div > span > span.ui-selectmenu-text"));
+	        if (selectIndex >= dropdownButtons.size()) {
+	            return null;
+	        }
+
+	        WebElement dropdown = dropdownButtons.get(selectIndex);
+	        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", dropdown);
+	        dropdown.click();
+
+	        List<WebElement> openDropdowns = driver.findElements(By.cssSelector(".ui-selectmenu-menu.ui-front.ui-selectmenu-open"));
+	        if (openDropdowns.isEmpty()) {
+	            System.out.println("드롭다운 열기 실패");
+	            return null;
+	        }
+
+	        WebElement targetMenu = openDropdowns.get(openDropdowns.size() - 1);
+	        List<WebElement> options = targetMenu.findElements(By.cssSelector(".ui-menu-item-wrapper"));
+
+	        for (WebElement opt : options) {
+	            String text = opt.getText().trim();
+
+	            if (text.contains(optionText)) {
+	                opt.click();
+	                wait.until(ExpectedConditions.invisibilityOf(targetMenu));
+	                return text;
+	            }
+	        }
+
+	        System.out.println("드롭다운 내 옵션 못 찾음: " + optionText);
+	    } catch (Exception e) {
+	        System.out.println("옵션 선택 중 오류 발생: " + optionText + " / " + e.getMessage());
+	    }
+
+	    return null;
+	}
+	
+//	public void processOptions(
+//		    WebDriver driver,
+//		    Document doc,
+//		    Elements selectBoxElements,
+//		    int index,
+//		    List<String> selectedOptions,
+//		    Coupang coupang,
+//		    int convertedPrice,
+//		    String cloudFlareImageUrl,
+//		    String cloudFlareImageId,
+//		    String cloudFlareDetailImageId,
+//		    String cloudFlareDetailImageUrl,
+//		    String thumbnail,
+//		    String detailImages,
+//		    String selectBoxEnabled,
+//		    int originalPrice,
+//		    int optionPrice,
+//		    List<CoupangItems> itemsList,
+//		    List<CoupangImages> imagesList,
+//		    List<CoupangContents> contentsList,
+//		    List<CoupangDetails> detailsList,
+//		    List<CoupangAttributes> attributesList
+//		){
+//
+//	    if (index >= selectBoxElements.size()) {
+//	        String combinedOption = String.join(" ", selectedOptions);
+//	        String firstOption = selectedOptions.size() > 0 ? selectedOptions.get(0) : "";
+//	        String secondOption = selectedOptions.size() > 1 ? selectedOptions.get(1) : "";
+//	        String thirdOption = selectedOptions.size() > 2 ? selectedOptions.get(2) : "";
+//
+//	        handleResults(coupang, combinedOption, convertedPrice,originalPrice,optionPrice,
+//	                cloudFlareImageUrl, cloudFlareImageId,
+//	                cloudFlareDetailImageId, cloudFlareDetailImageUrl,
+//	                thumbnail, detailImages, selectBoxEnabled,
+//	                firstOption, secondOption, thirdOption,
+//	                itemsList, imagesList, contentsList, detailsList, attributesList);
+//	        return;
+//	    }
+//
+//	    Element selectBoxElement = selectBoxElements.get(index);
+//	    Elements optionElements = selectBoxElement.select("option");
+//	    optionElements.remove(0);
+//
+//	    for (Element option : optionElements) {
+//	        String optionText = option.text().trim();
+//
+//	        if (!reselectPreviousOptions(driver, index, selectedOptions)) {
+//	            System.out.println("이전 옵션 재선택 실패 (index: " + index + ")");
+//	            continue;
+//	        }
+//
+//	        String selectedOption = selectCustomOption(driver, index, optionText);
+//	        if (selectedOption == null) {
+//	            System.out.println("옵션 선택 실패: " + optionText);
+//	            continue;
+//	        }
+//
+//	        List<String> newSelectedOptions = new ArrayList<>(selectedOptions);
+//	        newSelectedOptions.add(selectedOption);
+//
+//	        processOptions(driver, doc, selectBoxElements, index + 1,
+//	            newSelectedOptions, coupang, convertedPrice,
+//	            cloudFlareImageUrl, cloudFlareImageId,
+//	            cloudFlareDetailImageId, cloudFlareDetailImageUrl,
+//	            thumbnail, detailImages, selectBoxEnabled,originalPrice,optionPrice,
+//	            itemsList, imagesList, contentsList, detailsList, attributesList);
+//	    }
+//	}
+//
+//	private boolean reselectPreviousOptions(WebDriver driver, int currentIndex, List<String> selectedOptions) {
+//	    for (int i = 0; i < currentIndex; i++) {
+//	        String expectedOption = selectedOptions.get(i);
+//	        String actualOption = selectCustomOption(driver, i, expectedOption);
+//	        if (actualOption == null || !actualOption.contains(expectedOption)) {
+//	            System.out.println("재선택 실패: " + expectedOption);
+//	            return false;
+//	        }
+//	    }
+//	    return true;
+//	}
+//
+//	public String selectCustomOption(WebDriver driver, int selectIndex, String optionText) {
+//	    try {
+//	        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//
+//	        List<WebElement> dropdownButtons = driver.findElements(By.cssSelector("#optSel > div > span > span.ui-selectmenu-text"));
+//	        if (selectIndex >= dropdownButtons.size()) {
+//	            return null;
+//	        }
+//
+//	        WebElement dropdown = dropdownButtons.get(selectIndex);
+//	        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", dropdown);
+//	        dropdown.click();
+//
+//	        List<WebElement> openDropdowns = driver.findElements(By.cssSelector(".ui-selectmenu-menu.ui-front.ui-selectmenu-open"));
+//	        if (openDropdowns.isEmpty()) {
+//	            System.out.println("드롭다운 열기 실패");
+//	            return null;
+//	        }
+//
+//	        WebElement targetMenu = openDropdowns.get(openDropdowns.size() - 1);
+//	        List<WebElement> options = targetMenu.findElements(By.cssSelector(".ui-menu-item-wrapper"));
+//
+//	        for (WebElement opt : options) {
+//	            String text = opt.getText().trim();
+//
+//	            if (text.contains(optionText)) {
+//	                opt.click();
+//	                wait.until(ExpectedConditions.invisibilityOf(targetMenu));
+//	                return text;
+//	            }
+//	        }
+//
+//	        System.out.println("드롭다운 내 옵션 못 찾음: " + optionText);
+//	    } catch (Exception e) {
+//	        System.out.println("옵션 선택 중 오류 발생: " + optionText + " / " + e.getMessage());
+//	    }
+//
+//	    return null;
+//	}
+
+	public void handleResults(Coupang coupang, String combinedOption, int price,int originalPrice,int optionPrice,String cloudFlareImageUrl,String cloudFlareImageId,
+			String cloudFlareDetailImageId,String cloudFlareDetailImageUrl,
+			String thmb, String detailImages,
+			String selectBox, String firstOption, String secondOption, String thirdOption, List<CoupangItems> itemsList,
+			List<CoupangImages> imagesList, List<CoupangContents> contentsList, List<CoupangDetails> detailsList,
+			List<CoupangAttributes> attributesList) {
+
+		if (selectBox.equals("F|") || selectBox.equals("F|F|") || selectBox.equals("F|F|F|")) {
+			CoupangItemsCreateDto coupangItemsDto = CoupangItemsCreateDto.builder().coupangId(coupang.getCoupangId())
+					.itemName(combinedOption.trim()).originalPrice(originalPrice).salePrice(price).optionPrice(optionPrice).maximumBuyCount(10)
+					.maximumBuyForPerson(0).maximumBuyForPersonPeriod(1).outboundShippingTimeDay(3).unitCount(0)
+					.adultOnly("EVERYONE").taxType("TAX").parallelImported("NOT_PARALLEL_IMPORTED")
+					.overseasPurchased("NOT_OVERSEAS_PURCHASED").pccNeeded(false).build();
+			System.out.println(optionPrice);
+			CoupangItems coupangItem = CoupangItemsCreateDto.toEntity(coupangItemsDto, coupang);
+			itemsList.add(coupangItem);
+
+			CoupangImagesCreateDto coupangImagesDto = CoupangImagesCreateDto.builder().imageOrder(0)
+					.imageType("REPRESENTATION").vendorPath(cloudFlareImageUrl).coupangItemsId(coupangItem.getItemId())
+					.cloudFlareImageId(cloudFlareImageId).cloudFlareImageurl(cloudFlareImageUrl)
+					.coupangId(coupang.getCoupangId()).build();
+			CoupangImages coupangImage = CoupangImagesCreateDto.toEntity(coupangImagesDto, coupang, coupangItem);
+			imagesList.add(coupangImage);
+
+			CoupangContentsCreateDto coupangContentDto = CoupangContentsCreateDto.builder().contentsType("TEXT")
+					.coupangItemsId(coupangItem.getItemId()).coupangId(coupang.getCoupangId()).build();
+			CoupangContents coupangContent = CoupangContentsCreateDto.toEntity(coupangContentDto, coupang, coupangItem);
+			contentsList.add(coupangContent);
+
+			CoupangDetails coupangDetailDto = CoupangDetails.builder().content(detailImages).detailType("TEXT")
+					.cloudFlareImageUrl(cloudFlareDetailImageUrl).cloudFlareImageId(cloudFlareImageId)
+					.coupangContents(coupangContent).coupang(coupang).build();
+			CoupangDetails coupangDetail = CoupangDetailsCreateDto.toEntity(coupangDetailDto, coupang, coupangContent);
+			detailsList.add(coupangDetail);
+
+			if (selectBox.equals("F|")) {
+				CoupangAttributesCreateDto attributesDto = CoupangAttributesCreateDto.builder().attributeTypeName("옵션")
+						.attributeValueName(firstOption).coupangId(coupang.getCoupangId())
+						.coupangItemsId(coupangItem.getItemId()).build();
+
+				CoupangAttributes coupangAttribute = CoupangAttributesCreateDto.toEntity(attributesDto, coupang,
+						coupangItem);
+
+				attributesList.add(coupangAttribute);
+			} else if (selectBox.equals("F|F|") && !combinedOption.isEmpty()) {
+				CoupangAttributesCreateDto attributesDto = CoupangAttributesCreateDto.builder().attributeTypeName("옵션")
+						.attributeValueName(secondOption).coupangId(coupang.getCoupangId())
+						.coupangItemsId(coupangItem.getItemId()).build();
+				CoupangAttributes coupangAttribute = CoupangAttributesCreateDto.toEntity(attributesDto, coupang,
+						coupangItem);
+
+				CoupangAttributesCreateDto attributesDto2 = CoupangAttributesCreateDto.builder()
+						.attributeTypeName("옵션2").attributeValueName(firstOption).coupangId(coupang.getCoupangId())
+						.coupangItemsId(coupangItem.getItemId()).build();
+				CoupangAttributes coupangAttribute2 = CoupangAttributesCreateDto.toEntity(attributesDto2, coupang,
+						coupangItem);
+
+				attributesList.add(coupangAttribute);
+				attributesList.add(coupangAttribute2);
+			} else if (selectBox.equals("F|F|F|") && !combinedOption.isEmpty()) {
+				CoupangAttributesCreateDto attributesDto = CoupangAttributesCreateDto.builder().attributeTypeName("옵션")
+						.attributeValueName(secondOption).coupangId(coupang.getCoupangId())
+						.coupangItemsId(coupangItem.getItemId()).build();
+				CoupangAttributes coupangAttribute = CoupangAttributesCreateDto.toEntity(attributesDto, coupang,
+						coupangItem);
+
+				CoupangAttributesCreateDto attributesDto2 = CoupangAttributesCreateDto.builder()
+						.attributeTypeName("옵션2").attributeValueName(firstOption).coupangId(coupang.getCoupangId())
+						.coupangItemsId(coupangItem.getItemId()).build();
+				CoupangAttributes coupangAttribute2 = CoupangAttributesCreateDto.toEntity(attributesDto2, coupang,
+						coupangItem);
+
+				CoupangAttributesCreateDto attributesDto3 = CoupangAttributesCreateDto.builder()
+						.attributeTypeName("옵션3").attributeValueName(thirdOption).coupangId(coupang.getCoupangId())
+						.coupangItemsId(coupangItem.getItemId()).build();
+
+				CoupangAttributes coupangAttribute3 = CoupangAttributesCreateDto.toEntity(attributesDto3, coupang,
+						coupangItem);
+				attributesList.add(coupangAttribute);
+				attributesList.add(coupangAttribute2);
+				attributesList.add(coupangAttribute3);
+			}
+		}
+	}
+
+	@Transactional
+	public void CoupangProductSave(List<Coupang> coupangList, List<CoupangItems> items, List<CoupangImages> images,
+			List<CoupangAttributes> attributes, List<CoupangDetails> details, List<CoupangContents> contents) {
+		coupangRepository.saveAll(coupangList);
+		coupangItemsRepository.saveAll(items);
+		coupangImagesRepository.saveAll(images);
+		coupangContentsRepository.saveAll(contents);
+		coupangDetailsRepository.saveAll(details);
+		coupangAttributesRepository.saveAll(attributes);
+	}
+
+	public void getCoupangInventory(String username, String password, String url, int startPage, int endPage,
+            String brandUrl, Long userId) throws InterruptedException {
+	    if (brandUrl == null) {
+	        throw new IllegalArgumentException("brandUrl must not be null");
+	    }
+	    SeleniumSessionManager sessionManager = new SeleniumSessionManager(username, password, url);
+	    productInventoryPage(sessionManager, brandUrl, userId, startPage, endPage);
+	    sessionManager.quitDriver();
+	}
+	
+	public void productInventoryPage(SeleniumSessionManager sessionManager, String brandUrl, Long userId, int startPage, int endPage) throws InterruptedException {
+	    String brandDomain = extractDomain(brandUrl);
+	    int pageSize = 300;
+	    PageRequest pageRequest = PageRequest.of(0, pageSize);
+	
+	    List<Coupang> coupangStockList = coupangRepository.findAllByBrandAndSendYn(brandDomain, pageRequest);
+	
+	    if (coupangStockList.isEmpty()) {
+	        System.out.println("[INFO] 조회된 상품이 없습니다.");
+	        return;
+	    }
+	
+	    WebDriver driver = sessionManager.getDriver();
+	
+	    for (Coupang coupang : coupangStockList) {
+	        List<CoupangStocksDto> soldOutList = new ArrayList<>();
+	        try {
+	            driver.navigate().to(coupang.getCurrentUrl());
+	            Thread.sleep(2000);
+	
+	            if (!sessionManager.isSessionValid()) {
+	                System.err.println("[세션 만료 감지] 드라이버 재시작");
+	                sessionManager.restartDriver();
+	                driver = sessionManager.getDriver();
+	            }
+	
+	            Document doc = Jsoup.parse(driver.getPageSource());
+	            CoupangJsoupInfoDto jsoupDto = new CoupangJsoupInfoDto(brandUrl);
+	            jsoupDto.cleanTitleAndExtractBrand(doc.selectFirst(jsoupDto.getSelector("title")));
+	
+	            Element productCodeElement = doc.selectFirst(jsoupDto.getSelector("productCode"));
+	            String productCode = "";
+	            if (productCodeElement != null) {
+	                productCode = productCodeElement.hasAttr("value")
+	                        ? productCodeElement.val().trim()
+	                        : productCodeElement.text().trim();
+	            }
+	
+	            Elements selectBoxes = doc.select(jsoupDto.getSelector("selectBox"));
+	            processStockOptions(driver, selectBoxes, 0, new ArrayList<>(), productCode, soldOutList);
+	
+	        } catch (UnhandledAlertException e) {
+	            handleAlertException(sessionManager, coupang, soldOutList);
+	        } catch (NoSuchSessionException | TimeoutException e) {
+	            System.err.println("[세션 문제] 재시작: " + e.getMessage());
+	            sessionManager.restartDriver();
+	            Thread.sleep(2000);
+	        } catch (Exception e) {
+	            System.err.println("[예외 발생] " + e.getMessage());
+	        }
+	
+	        if (!soldOutList.isEmpty()) {
+	            updateCoupangStockStatus(soldOutList, userId, 0);
+	        }
+	    }
+	}
+	
+	private void handleAlertException(SeleniumSessionManager sessionManager, Coupang coupang, List<CoupangStocksDto> soldOutList) {
+	    try {
+	        Alert alert = sessionManager.getDriver().switchTo().alert();
+	        String alertText = alert.getText();
+	        alert.accept();
+	
+	        if (alertText.contains("상품정보가 존재하지 않습니다") || alertText.contains("해당상품은 진열이 허용된 상품이 아닙니다.")) {
+	            soldOutList.add(CoupangStocksCreateDto.builder()
+	                .productCode(coupang.getProductCode())
+	                .itemName("")
+	                .build().toDto());
+	        }
+	    } catch (NoAlertPresentException ignored) {}
+	}
+	
+	private void processStockOptions(WebDriver driver, Elements selectBoxes, int index,
+	    List<String> selectedOptions, String productCode,
+	    List<CoupangStocksDto> soldOutList) {
+	
+	    if (index >= selectBoxes.size()) return;
+	
+	    Element selectBoxElement = selectBoxes.get(index);
+	    Elements optionElements = selectBoxElement.select("option");
+	    if (!optionElements.isEmpty()) optionElements.remove(0);
+	
+	    for (Element option : optionElements) {
+	        String optionText = option.text().trim();
+	
+	        if (!reselectPreviousOptions(driver, index, selectedOptions)) {
+	            System.out.println("이전 옵션 재선택 실패: index=" + index);
+	            continue;
+	        }
+	
+	        boolean isSoldOut = optionText.contains("품절") || optionText.contains("재고 : 0개") || optionText.contains("재고: 0개");
+	
+	        if (isSoldOut) {
+	            List<String> newSelectedOptions = new ArrayList<>(selectedOptions);
+	            newSelectedOptions.add(normalizeItemName(optionText));
+	            String combined = String.join(" ", newSelectedOptions);
+	            System.out.println("[품절 옵션 탐지] " + combined);
+	            soldOutList.clear();
+	            soldOutList.add(CoupangStocksCreateDto.builder()
+	                .productCode(productCode)
+	                .itemName(combined)
+	                .build().toDto());
+	            return;
+	        }
+	
+	        String selected = selectCustomOption(driver, index, optionText);
+	        if (selected == null) {
+	            System.out.println("옵션 선택 실패 (품절 아님으로 간주): " + optionText);
+	            continue;
+	        }
+	
+	        List<String> newSelectedOptions = new ArrayList<>(selectedOptions);
+	        newSelectedOptions.add(selected);
+	        processStockOptions(driver, selectBoxes, index + 1, newSelectedOptions, productCode, soldOutList);
+	    }
+	}
+	
+	@Transactional
+	public void updateCoupangStockStatus(List<CoupangStocksDto> stocks, Long userId, int quantity) {
+	    CoupangApiKey apiKey = coupangApiKeyRepository.findByCoupangUser_Id(userId)
+	        .orElseThrow(() -> new IllegalArgumentException("API Key가 존재하지 않습니다. User ID: " + userId));
+	
+	    List<CoupangUserItemsStatus> itemsToSaveStatus = new ArrayList<>();
+	
+	    for (CoupangStocksDto stock : stocks) {
+	        String productCode = stock.getProductCode();
+	        String rawItemName = stock.getItemName();
+	
+	        System.out.printf("[INPUT] productCode=%s, itemName=%s, quantity=%d%n", productCode, rawItemName, quantity);
+	
+	        List<CoupangItemStatusDTO> candidates = (quantity == 0) ?
+	            coupangItemsRepository.findItemsForStatusCheckByProductCode(productCode) :
+	            coupangItemsRepository.findAllByProductCode(productCode);
+	
+	        String normalizedInput = normalizeItemName(rawItemName);
+	
+	        for (CoupangItemStatusDTO dto : candidates) {
+	            String normalizedDbName = normalizeItemName(dto.getItemName());
+	
+	            System.out.printf("[DTO] itemId=%d, itemName=%s%n", dto.getItemId(), dto.getItemName());
+	
+	            if (!normalizedDbName.equals(normalizedInput)) continue;
+	
+	            CoupangApiDetailResponse detailResponse = coupangProductClient.detailDataToCoupang(
+	                dto.getCoupangProductId(), apiKey.getAccessKey(), apiKey.getSecretKey());
+	
+	            Optional<CoupangDetailItemResponse> matchedItem = findMatchingItem(detailResponse, dto);
+	
+	            if (matchedItem.isEmpty()) {
+	                System.out.printf("[DEBUG] 매칭 실패 → productCode=%s, itemName=%s%n", productCode, rawItemName);
+	                continue;
+	            }
+	
+	            CoupangDetailItemResponse item = matchedItem.get();
+	            Optional<CoupangUserItemsStatus> userItemOpt = coupangUserItemsStatusRepository.findByItemId(dto.getItemId());
+	
+	            if (userItemOpt.isEmpty()) {
+	                System.out.printf("[DEBUG] DB에 없는 itemId: %d%n", dto.getItemId());
+	                continue;
+	            }
+	
+	            int statusCode = coupangProductClient.updateDataToCoupang(item.getVendorItemId(),
+	                apiKey.getAccessKey(), apiKey.getSecretKey());
+	
+	            System.out.printf("[API] vendorItemId=%s, statusCode=%d%n", item.getVendorItemId(), statusCode);
+	
+	            if (statusCode == 200) {
+	                CoupangUserItemsStatus userItem = userItemOpt.get();
+	                userItem.setVendorItemId(item.getVendorItemId());
+	                userItem.setQuantity(quantity);
+	                itemsToSaveStatus.add(userItem);
+	            }
+	        }
+	    }
+	
+	    if (!itemsToSaveStatus.isEmpty()) {
+	        System.out.println("[RESULT] 업데이트 수량: " + itemsToSaveStatus.size());
+	        coupangUserItemsStatusRepository.saveAll(itemsToSaveStatus);
+	    } else {
+	        System.out.println("[RESULT] 업데이트 대상 없음");
+	    }
+	}
+	
+	private String normalizeItemName(String rawName) {
+	    return rawName == null ? "" : rawName.replaceAll("\\(.*?\\)", "").replaceAll("\\s+", " ").trim();
+	}
+	
+	private Optional<CoupangDetailItemResponse> findMatchingItem(
+	        CoupangApiDetailResponse response,
+	        CoupangItemStatusDTO dto) {
+	
+	    String normalizedDtoName = normalizeItemName(dto.getItemName());
+	
+	    return response.getItemList().stream()
+	            .filter(item -> {
+	                String normalizedItemName = normalizeItemName(item.getItemName());
+	
+	                return item.getSellerProductId().equals(dto.getCoupangProductId()) &&
+	                       normalizedItemName.equals(normalizedDtoName);
+	            })
+	            .findFirst();
+	}
+	
+	private String extractDomain(String url) {
+	    try {
+	        URL parsedUrl = new URL(url);
+	        return parsedUrl.getHost();
+	    } catch (MalformedURLException e) {
+	        return "";
+	    }
+	}
+
+
+	@Transactional
+	public String deleteInventory(long id, long productSellerId, long coupangUserId) throws InterruptedException {
+	    CoupangApiKey apiKey = coupangApiKeyRepository.findByCoupangUser_Id(coupangUserId)
+	        .orElseThrow(() -> new IllegalArgumentException("API Key가 존재하지 않습니다. User ID: " + coupangUserId));
+
+	    CoupangApiDetailResponse detailResponse = coupangProductClient.detailDataToCoupang(
+	        productSellerId, apiKey.getAccessKey(), apiKey.getSecretKey());
+	    List<CoupangDetailItemResponse> itemList = Optional.ofNullable(detailResponse.getItemList())
+	        .orElse(Collections.emptyList());
+	    
+	    if (!itemList.isEmpty()) {
+	        CoupangDetailItemResponse item = itemList.get(0);  
+	        if (item.getVendorItemId() != 0) {
+	            CoupangDeleteProductResponse deleteResponse = coupangProductClient.deleteDataToCoupang(
+	                productSellerId, apiKey.getAccessKey(), apiKey.getSecretKey());
+
+	            if ("SUCCESS".equals(deleteResponse.getCode())) {
+	                coupangRepository.deleteById(id);
+	                return deleteResponse.getMessage();
+	            } else {
+	                return "상품 삭제 실패: " + deleteResponse.getMessage();
+	            }
+	        }
+
+	        List<Long> vendorItemIds = itemList.stream()
+	            .map(CoupangDetailItemResponse::getVendorItemId)
+	            .filter(Objects::nonNull)
+	            .collect(Collectors.toList());
+
+	        List<String> itemNames = itemList.stream()
+	            .map(CoupangDetailItemResponse::getItemName)
+	            .filter(Objects::nonNull)
+	            .collect(Collectors.toList());
+
+	        List<CoupangUserItemsStatus> existingItems = coupangUserItemsStatusRepository.findBySellerProductIdAndVendorIdAndItemNames(
+	            productSellerId, itemNames);
+
+	        if (existingItems.isEmpty()) {
+	            return "삭제할 재고 데이터가 없습니다.";
+	        }
+
+	        existingItems.forEach(existingItem ->
+	            itemList.stream()
+	                .filter(responseItem -> responseItem.getItemName().equals(existingItem.getItemName()) &&
+	                                        responseItem.getSellerProductId().equals(existingItem.getCoupangProductId()))
+	                .findFirst()
+	                .ifPresent(responseItem -> existingItem.setVendorItemId(responseItem.getVendorItemId()))
+	        );
+
+	        List<Integer> results = vendorItemIds.stream()
+	            .map(vendorItemId -> coupangProductClient.updateDataToCoupang(vendorItemId, apiKey.getAccessKey(), apiKey.getSecretKey()))
+	            .collect(Collectors.toList());
+
+	        if (results.stream().allMatch(code -> code == 200)) {
+	            coupangUserItemsStatusRepository.saveAll(existingItems);
+
+	            CoupangDeleteProductResponse deleteResponse = coupangProductClient.deleteDataToCoupang(
+	                productSellerId, apiKey.getAccessKey(), apiKey.getSecretKey());
+
+	            if ("SUCCESS".equals(deleteResponse.getCode())) {
+	                coupangRepository.deleteById(id);
+	                return deleteResponse.getMessage();
+	            }
+	        } else {
+	            return "판매 중지 실패: 일부 항목에서 오류 발생";
+	        }
+	    }
+
+	    return "삭제할 상품이 존재하지 않습니다.";
+	}
+
+	@Transactional(readOnly = true)
+	public Page<CoupangDto> getCoupangDto(Pageable pageable, Long userId,String searchKeyword) {
+		
+		pageable = PageRequest.of(pageable.getPageNumber() > 0 ? pageable.getPageNumber() - 1 : 0, 10);
+
+	    Page<Coupang> coupangPage = coupangRepository.searchSoldOutDeletedByKeyword(searchKeyword, pageable);  
+
+	    List<Long> coupangIds = coupangPage.getContent().stream()
+	                .map(Coupang::getCoupangId)
+	                .collect(Collectors.toList());
+	   
+	    List<CoupangItems> coupangItems = coupangItemsRepository.findDeletedItemsWithOptionalUserStatus(coupangIds, userId);
+	    
+	    List<Long> coupangItemIds = coupangItems.stream()
+	    			.map(CoupangItems::getItemId)
+	    			.collect(Collectors.toList());
+	    
+	    List<CoupangUserItemsStatus> coupangUserItemsStatus = coupangUserItemsStatusRepository.findByCoupangSoldOutIdsAndCoupangItemIds(coupangIds,coupangItemIds);
+
+	    List<CoupangImages> coupangImages = coupangImagesRepository.findImagesByItemIds(coupangItemIds);
+
+	    List<CoupangAttributes> coupangAttributes = coupangAttributesRepository.findAttributesByItemIds(coupangItemIds);
+	    
+	    List<CoupangContents> coupangContents = coupangContentsRepository.findContentsByItemIds(coupangItemIds);
+	    
+	    List<Long> coupangContentIds = coupangContents.stream()
+	    			.map(CoupangContents::getCoupangContentId)
+	    			.collect(Collectors.toList());
+	    
+	    List<CoupangDetails> coupangDetails = coupangDetailsRepository.findDetailsByItemIds(coupangContentIds);
+	    
+	    List<CoupangDto> dtoList = coupangPage.getContent().stream().map(coupang -> {
+
+	    	List<CoupangItems> itemsForCoupang = filterItemsByCoupangId(coupang, coupangItems);
+	        
+	        return CoupangDto.fromEntity(coupang, itemsForCoupang, coupangImages,coupangAttributes,coupangContents,coupangDetails,coupangUserItemsStatus);
+	    }).collect(Collectors.toList());
+	    
+	    return new PageImpl<>(dtoList, pageable, coupangPage.getTotalElements());
+	}
+	
+	private List<CoupangItems> filterItemsByCoupangId(Coupang coupang, List<CoupangItems> coupangItems) {
+	    if (coupang == null || coupangItems == null) {
+	        return Collections.emptyList();
+	    }
+
+	    return coupangItems.stream()
+	            .filter(item -> item.getCoupang() != null && 
+	                            item.getCoupang().getCoupangId() != null &&
+	                            item.getCoupang().getCoupangId().equals(coupang.getCoupangId()))
+	            .limit(200)
+	            .collect(Collectors.toList());
+	}
+	
+}

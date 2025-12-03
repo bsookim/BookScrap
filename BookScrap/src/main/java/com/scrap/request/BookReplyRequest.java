@@ -1,0 +1,10 @@
+package com.scrap.request;
+
+import lombok.Getter;
+
+@Getter
+public class BookReplyRequest {
+	
+	private String content;
+	
+}

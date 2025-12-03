@@ -1,0 +1,37 @@
+package com.naver.dto.created;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class NaverDto {
+	
+	private String statusType;
+	
+	private String saleType; //NEW,OLD 미입력시 NEW
+	
+	private String name; //상품명
+	
+	private String detailContent;
+	
+	private NaverImagesDto images;
+	
+	private int salePrice;
+	
+	private int stockQuantity;
+	
+	private DetailAttribute detailAttribute;
+	
+	private SmartstoreChannelProduct smartstoreChannelProduct;
+
+	private WindowChannelProduct windowChannelProduct;
+
+
+	
+}

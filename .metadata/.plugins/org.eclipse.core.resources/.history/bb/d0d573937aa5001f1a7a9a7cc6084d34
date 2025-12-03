@@ -1,0 +1,39 @@
+package com.shop.entity;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.shop.Coupang;
+
+public interface CoupangRepository extends JpaRepository<Coupang, Long>{
+	
+	@Query(value = "SELECT c FROM Coupang c "
+	        + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+	        + "LEFT JOIN ci.coupangUserItemsStatus cs "
+	        + "WHERE cs.sendYn IS NULL "
+	        + "GROUP BY c.id",
+	        countQuery = "SELECT COUNT(DISTINCT c.id) FROM Coupang c "
+	                + "LEFT JOIN CoupangItems ci ON ci.coupang.id = c.id "
+	                + "LEFT JOIN ci.coupangUserItemsStatus cs "
+	                + "WHERE cs.sendYn IS NULL")
+	Page<Coupang> findAllDesc(Pageable pageable);
+
+	@Transactional(readOnly =true)
+//	@Query("SELECT  COUNT(c) > 0 FROM Coupang c WHERE c.productCode =:code OR (c.displayProductName = :title)")
+	@Query("SELECT " +
+			   "CASE " +
+		       "  WHEN c.productCode IS NULL AND c.displayProductName IS NOT NULL THEN c.displayProductName " +
+//		       "  WHEN c.productCode IS NULL AND c.displayProductName IS NULL THEN NULL " +
+		       "  ELSE c.productCode " +
+		       "END " +
+		       "FROM Coupang c " +
+		       "WHERE c.productCode = :code OR c.productCode IS NULL")
+	String existsByProductCode(@Param("code") String code);
+	
+
+
+}

@@ -1,0 +1,9 @@
+package com.scrap.dto;
+
+import java.util.List;
+
+import com.scrap.entity.BookReply;
+
+public class BookReplyDto {
+
+}

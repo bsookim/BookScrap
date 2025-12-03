@@ -1,0 +1,16 @@
+package com.coupang.scrap.view;
+
+import org.openqa.selenium.WebDriver;
+
+import com.coupang.factory.CoupangRequestList;
+import com.coupang.repository.CoupangRepository;
+
+public class ProFishingProductViewHandler implements ProductViewHandler {
+
+    @Override
+    public CoupangRequestList handle(WebDriver driver, String url, CoupangRepository coupangRepository) {
+        System.out.println("[INFO] ProFishingProductViewHandler handle 호출됨: " + url);
+        // TODO: 실제 페이지 처리 로직 구현
+        return null;
+    }
+}

@@ -1,0 +1,63 @@
+package com.kick.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.kick.Coupang;
+import com.kick.CoupangItems;
+import com.kick.dto.CoupangDto;
+import com.kick.dto.CoupangFlatDto;
+import com.kick.dto.CoupangItemsDto;
+import com.kick.entity.CoupangAttributesRepository;
+import com.kick.entity.CoupangImagesRepository;
+import com.kick.entity.CoupangItemsRepository;
+import com.kick.entity.CoupangRepository;
+
+@Transactional
+@Service
+public class CoupangService {
+	//쿠팡
+	@Autowired CoupangRepository coupangRepository; 
+	@Autowired CoupangItemsRepository coupangItemRepository;
+	@Autowired CoupangItemsRepository coupangItemsRepository;
+	@Autowired CoupangImagesRepository coupangImagesRepository;
+	@Autowired CoupangAttributesRepository coupangAttributesRepository;
+	
+	@Transactional(readOnly = true)
+	public CoupangFlatDto coupangDetail(){
+		//408 시작 
+		//옵션을 기준으로 데이터를 생성했고 MANYTOONE LAZY를 사용하면 N+1이 생성 됨 해당 문제를 
+		//해결하려면 FETCH JOIN 사용 + BATCH SIZE 사용
+		//하지만 fetch join을 사용할수없음 페이징을 사용시에 setfirst..maxsize.. memory 에러가 나옴 
+		//해당 문제 때문에 fetchjoin을 사용하지않고 모든 entity를 조인하고 pagerequest를 사용하기로함
+		//쿠팡은 옵션을 기준으로 상세이미지가 생성이 되기 때문에 만약 첫번째 옵션이 100개고 두번째 옵션이 2개라면 총 200개의 옵션이 들어감
+		//쿠팡 json파일을 보면 옵션이 최대 200개 까지만 허용을 하는데 200개 기준으로 모두 꽉채워넣음
+		CoupangFlatDto coupang=coupangRepository.findByCoupang((long)408); 
+		
+//		List<CoupangItems> coupangItems= coupangItemsRepository.findAllByCoupang(coupang.getId(),PageRequest.of(0,200));   
+		return coupang; 
+	}
+
+	@Transactional(readOnly = true)
+	public List<CoupangDto> coupangList(){
+		//firstResult/maxResults specified with collection fetch; applying in memory 해당 에러
+		//fail_on_pagination_over_collection_fetch:true 야믈에 추가해주자
+		List<CoupangDto> dtoList= new ArrayList<>();
+		List<Coupang> coupangList = coupangRepository.findAllByCoupang();
+		
+		for(Coupang coupang:coupangList) {
+			List<CoupangItems> coupangItems = coupangItemsRepository.findAllByCoupangLists(coupang.getId(),PageRequest.of(0,200));
+			CoupangDto dto=new CoupangDto(coupang,coupangItems);
+			dtoList.add(dto);
+		}
+		
+		return dtoList;
+	}
+
+}
+ 

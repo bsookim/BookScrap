@@ -1,0 +1,206 @@
+package com.scrap.pom;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+
+import com.scrap.data.BooksData;
+import com.scrap.entity.BookCategory;
+import com.scrap.entity.Books;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+public class SeleniumBooks {
+
+    // Page elements (will be initialized after each driver.get by PageFactory.initElements)
+    @FindBy(css="#content_inner > article > div.row > div.col-sm-6.product_main > h1")
+    private WebElement title;
+
+    @FindBy(css="#content_inner > article > div.row > div.col-sm-6.product_main > p.price_color")
+    private WebElement price;
+
+    @FindBy(css="#content_inner > article > div.row > div.col-sm-6.product_main > p.instock.availability")
+    private WebElement stock;
+
+    @FindBy(css="#content_inner > article > p")
+    private WebElement descpription;
+
+    @FindBy(xpath = "//table[@class='table table-striped']//th[text()='UPC']/following-sibling::td")
+    private WebElement upc;
+
+    @FindBy(xpath = "//table[@class='table table-striped']//th[text()='Product Type']/following-sibling::td")
+    private WebElement productType;
+
+    @FindBy(css="#product_gallery > div > div > div > img")
+    private WebElement thumbNail;
+
+    @FindBy(css="ul.breadcrumb > li")
+    private List<WebElement> categoryList;
+
+    /**
+     * 카테고리 페이지들을 순회하여 각 책의 상세 페이지 URL 리스트를 반환
+     * SeleniumBookCategory에서는 getCategoryUrls()가 List<WebElement>를 반환한다고 가정
+     */
+    public BooksData booksHref(WebDriver driver, SeleniumBookCategory sbc) {
+        BooksData bookData = new BooksData();
+        List<String> categoryUrls = new ArrayList<>();
+
+        // 카테고리 링크 수집
+        for (WebElement category : sbc.getCategoryUrls()) {
+            try {
+                String href = category.getAttribute("href");
+                if (href == null || href.isEmpty()) {
+                    href = category.getDomProperty("href");
+                }
+                if (href != null && !href.isEmpty()) {
+                    categoryUrls.add(href);
+                    BookCategory bookCategory = BookCategory.builder()
+                            .categoryUrl(href)
+                            .categoryText(category.getText())
+                            .build();
+                    bookData.getBookCategoryList().add(bookCategory);
+                }
+            } catch (NoSuchElementException e) {
+                // 무시
+            }
+        }
+
+        // 각 카테고리에서 모든 책 상세 URL 추출 (페이징 처리 포함)
+        List<String> allBookUrls = new ArrayList<>();
+        for (String categoryUrl : categoryUrls) {
+            driver.get(categoryUrl);
+
+            Integer endPage = null;
+            try {
+                WebElement endPageElement = driver.findElement(
+                        By.cssSelector("#default > div > div > div > div > section > div:nth-child(2) > div > ul > li.current")
+                );
+                String text = endPageElement.getText(); // 예: "Page 1 of 4"
+                if (text != null && text.contains("of")) {
+                    String[] parts = text.split("of");
+                    endPage = Integer.parseInt(parts[1].trim());
+                }
+            } catch (Exception e) {
+                // 페이징 요소가 없으면 endPage == null 로 처리 (single page)
+            }
+
+            if (endPage == null) {
+                List<WebElement> hrefsOnPage = driver.findElements(By.cssSelector("div.image_container a"));
+                allBookUrls.addAll(detailUrls(hrefsOnPage));
+            } else {
+                for (int i = 1; i <= endPage; i++) {
+                    // 페이지별 링크 수집
+                    List<WebElement> hrefsOnPage = driver.findElements(By.cssSelector("div.image_container a"));
+                    allBookUrls.addAll(detailUrls(hrefsOnPage));
+
+                    // 다음 페이지가 있으면 클릭 (다음 버튼이 없으면 break)
+                    List<WebElement> nextButtons = driver.findElements(By.cssSelector("li.next > a"));
+                    if (!nextButtons.isEmpty()) {
+                        clickNoSuchException(nextButtons.get(0));
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        bookData.getUrls().addAll(allBookUrls);
+        return bookData;
+    }
+
+    /**
+     * 상세 페이지들을 순회하며 Books 엔티티 리스트 반환
+     */
+    public List<Books> booksDetailPage(WebDriver driver, List<String> urls) {
+        List<Books> books = new ArrayList<>();
+
+        for (String url : urls) {
+            try {
+                driver.get(url);
+                // 페이지의 @FindBy들 초기화
+                PageFactory.initElements(driver, this);
+
+                // 카테고리 텍스트 수집
+                List<String> categoryTexts = new ArrayList<>();
+                if (categoryList != null) {
+                    for (WebElement li : categoryList) {
+                        try {
+                            String txt = li.getText();
+                            if (txt != null) categoryTexts.add(txt.trim());
+                        } catch (NoSuchElementException e) {
+                            // 무시
+                        }
+                    }
+                }
+
+                // stock에서 숫자만 남기기
+                String rawStock = textNoSuchException(this.stock);
+                String stockOnlyDigits = rawStock.replaceAll("[^0-9]", "");
+
+                String thumbnailSrc = thumbNail.getDomProperty("src");
+
+                Books book = Books.builder()
+                        .title(textNoSuchException(this.title))
+                        .price(textNoSuchException(this.price))
+                        .stock(stockOnlyDigits)
+                        .descpription(textNoSuchException(this.descpription))
+                        .upc(textNoSuchException(this.upc))
+                        .productType(textNoSuchException(this.productType))
+                        .currnetUrl(driver.getCurrentUrl())
+                        .thumbNail(thumbnailSrc)
+                        .category(categoryTexts)
+                        .build();
+
+                books.add(book);
+            } catch (Exception e) {
+                System.err.println("booksDetailPage error for url: " + url);
+                e.printStackTrace();
+            }
+        }
+
+        return books;
+    }
+
+    public List<String> detailUrls(List<WebElement> list) {
+        List<String> urls = new ArrayList<>();
+        for (WebElement a : list) {
+            try {
+                String href = a.getAttribute("href");
+                if (href == null || href.isEmpty()) href = a.getDomProperty("href");
+                if (href != null && !href.isEmpty()) urls.add(href);
+            } catch (Exception e) {
+            }
+        }
+        return urls;
+    }
+
+    public String textNoSuchException(WebElement element) {
+        try {
+            if (element == null) return "";
+            String txt = element.getText();
+            return txt == null ? "" : txt.trim();
+        } catch (NoSuchElementException e) {
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public void clickNoSuchException(WebElement element) {
+        try {
+            if (element != null) element.click();
+        } catch (Exception e) {
+        }
+    }
+}

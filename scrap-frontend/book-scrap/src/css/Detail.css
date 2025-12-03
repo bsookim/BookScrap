@@ -1,0 +1,102 @@
+.detail-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  gap: 24px;
+}
+
+.detail-image-box {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.detail-image {
+  width: 280px;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  object-fit: cover;
+}
+
+.detail-info {
+  flex: 2;
+}
+
+.detail-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.detail-price {
+  font-size: 20px;
+  color: #e60023;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.detail-stock {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.detail-description {
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  color: #444;
+}
+
+.reply-box {
+  margin-top: 32px;
+  padding: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.reply-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.reply-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.reply-item:last-child {
+  border-bottom: none;
+}
+
+.back-btn {
+  margin-top: 20px;
+  padding: 8px 14px;
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  background-color: #000;
+}
+
+.reply-box input[type="text"] {
+  width: 60%;
+  padding: 6px;
+  margin-right: 6px;
+}
+
+.reply-box button {
+  padding: 4px 8px;
+  margin-right: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+

@@ -1,0 +1,18 @@
+package com.scrap.entity;
+
+import java.util.List;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Builder
+public class BookReply extends BaseTimeEntity{
+
+}

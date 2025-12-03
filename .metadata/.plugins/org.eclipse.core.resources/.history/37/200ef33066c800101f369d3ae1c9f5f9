@@ -1,0 +1,19 @@
+package com.scrap.repository;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.scrap.entity.Books;
+import java.util.List;
+
+
+public interface BooksRepository extends JpaRepository<Books, Long>{
+
+	@Query(value="SELECT b FROM Books b WHERE b.category = :category AND b.id = :id")
+	Page<Books> findByCategory(@Param("category") String category, Pageable pageable);
+
+}
+ 

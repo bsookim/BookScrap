@@ -1,0 +1,76 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import '../styles/replyList.css';
+
+const ReplyList = ({ replyList, setReplyList }) => {
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+
+  const deleteBooksReply = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8080/books/reply/delete/${id}`);
+
+      setReplyList(prev => prev.filter(r => r.id !== id));
+    } catch (error) {
+      console.error("삭제 실패:", error);
+    }
+  }; 
+
+  const startEdit = (reply) => {
+    setEditingId(reply.id);
+    setEditContent(reply.content);
+  };
+
+  const submitBooksReply = async (id) => {
+    try {
+        await axios.put("http://localhost:8080/books/reply/update", {
+        id: id,
+        content: editContent,
+        });
+
+        setReplyList(prev =>
+        prev.map(r =>
+            r.id === id ? { ...r, content: editContent } : r
+        )
+        );
+
+        setEditingId(null);
+    } catch (error) {
+        console.error("수정 실패:", error);
+    }
+    };
+
+  return (
+    <div className="list-layout">
+      <div className="list-content">
+        <h1 className="list-title">댓글 목록</h1>
+
+        {replyList.map((r) => (
+          <ul key={r.id}>
+            <li>
+              {editingId === r.id ? (
+                <input
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                />
+              ) : (
+                r.content
+              )}
+            </li>
+
+            <span>
+              {editingId === r.id ? (
+                <button onClick={() => submitBooksReply(r.id)}>완료</button>
+              ) : (
+                <button onClick={() => startEdit(r)}>수정</button>
+              )}
+              <button onClick={() => deleteBooksReply(r.id)}>삭제</button>
+            </span>
+          </ul>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default ReplyList;

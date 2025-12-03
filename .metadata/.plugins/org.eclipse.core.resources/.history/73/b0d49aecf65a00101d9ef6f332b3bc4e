@@ -1,0 +1,191 @@
+package com.coupang.selenium.page;
+
+import java.net.URL;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import lombok.Getter;
+
+@Getter
+public class SCoupangCafePageDto {
+
+    private final WebDriver driver;
+    private final Map<String, Function<Integer, String>> urlModifiers = new HashMap<>();
+    private final String initialUrl;
+    
+    private static final List<String> PRODUCT_SELECTORS = Arrays.asList(
+//    	    "body > div.wrap_body > div.sub_contents.sbc_width.best_wrap > div.bodyWrap > div > div.gallery_list.column5.pdBtnBoxWrap.wrap.new > ul > li",
+//    	    "div.gallery_list li .pdImg",
+//    	    "#list100 > div > ul > li",
+//    	    "#content > div.indiv > form > table > tbody > tr > td > ul.n_p > li",
+//    	    "body > div.wrap_body > div.sub_contents.sbc_width.best_wrap > div > div.gallery_list.column5.pdBtnBoxWrap.wrap.new > ul",
+//    	    // 바니펫
+//    	    "div.item-display.type-gallery li",
+    	    "#paging_datalist > div > ul > li"
+    	);
+
+
+    public SCoupangCafePageDto(WebDriver driver, String initialUrl) {
+        this.driver = driver;
+        this.initialUrl = initialUrl;
+        initUrlModifiers();
+    }
+
+    private void initUrlModifiers() {
+        urlModifiers.put("bonniepet.co.kr", page -> modifyUrlWithParam(driver.getCurrentUrl(), "page", page));
+        urlModifiers.put("pettob.co.kr", page -> modifyUrlWithParam(driver.getCurrentUrl(), "page", page));
+        urlModifiers.put("sujinpet.smallbigkorea.com", page -> modifyUrlWithParam(driver.getCurrentUrl(), "page", page));
+        urlModifiers.put("sujinpet.co.kr", page -> modifyUrlWithParam(driver.getCurrentUrl(), "page", page));
+    }
+
+    
+    public List<String> productNextPage(int startPage, int endPage) {
+        Set<String> uniqueUrls = new HashSet<>();
+        List<String> collectedUrls = new ArrayList<>();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        String current = driver.getCurrentUrl();
+        if (current == null || current.startsWith("data:") || current.isBlank()) {
+            System.out.println("[INFO] 현재 URL이 비정상입니다. 초기 URL로 복원: " + initialUrl);
+            driver.get(initialUrl);
+        }
+
+        for (int page = startPage; page <= endPage; page++) {
+            String targetUrl = getModifiedUrl(driver.getCurrentUrl(), page);
+            System.out.println("[INFO] targetUrl = " + targetUrl);
+            if (targetUrl == null) continue;
+
+            try {
+                driver.get(targetUrl);
+
+                if (!waitForAnySelector(wait)) {
+                    System.out.println("[WARNING] 제품 리스트 로딩 실패: " + targetUrl);
+                    continue;
+                }
+
+                Document doc = Jsoup.parse(driver.getPageSource());
+                String baseUrl = driver.getCurrentUrl();
+
+                for (Element product : getProductElements(doc)) {
+                	System.out.println(product.text());
+                    if (isSoldOut(product)) {
+                        System.out.println("[SKIP] 품절 상품 건너뜀");
+                        continue;
+                    }
+
+                    collectProductLinks(product, baseUrl, uniqueUrls, collectedUrls);
+                }
+
+            } catch (Exception e) {
+                System.out.println("[ERROR] 페이지 처리 중 예외 발생: " + e.getMessage());
+            }
+        }
+        System.out.println(collectedUrls.size());
+        return collectedUrls;
+    }
+
+    private boolean waitForAnySelector(WebDriverWait wait) {
+        for (String selector : PRODUCT_SELECTORS) {
+            try {
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector(selector)));
+                return true;
+            } catch (Exception e) {
+                System.out.println("[WAIT] 셀렉터 실패: " + selector + " / " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private void collectProductLinks(Element product, String baseUrl, Set<String> uniqueUrls, List<String> collectedUrls) {
+        Elements links = product.select("dl > dt > a[href] ,div.txt > div.tit.airplane_wrap > a[href],div a[href]");
+        System.out.println(links.size());
+        for (Element link : links) {
+            String href = link.attr("href").trim();
+            if (isInvalidHref(href) || !href.contains("goods_view")) continue;
+
+            try {
+                String fullUrl = new URL(new URL(baseUrl), href).toString();
+                if (uniqueUrls.add(fullUrl)) {
+                    System.out.println("[ADD] 상품 URL 수집됨: " + fullUrl);
+                    collectedUrls.add(fullUrl);
+                }
+            } catch (Exception e) {
+                System.out.println("[ERROR] URL 변환 실패: " + href + " / " + e.getMessage());
+            }
+        }
+    }
+
+    private String getModifiedUrl(String originalUrl, int page) {
+        try {
+            if (!(originalUrl.startsWith("http://") || originalUrl.startsWith("https://"))) {
+                System.out.println("[WARNING] 지원되지 않는 URL 형식: " + originalUrl);
+                return null;
+            }
+
+            URL url = new URL(originalUrl);
+            String host = url.getHost().toLowerCase(); // ← 여기 중요
+            System.out.println("[DEBUG] Host: " + host);
+
+            Function<Integer, String> modifier = urlModifiers.get(host);
+            if (modifier == null) {
+                System.out.println("[INFO] 지원하지 않는 도메인: " + host);
+                return null;
+            }
+
+            return modifier.apply(page);
+        } catch (Exception e) {
+            System.out.println("[ERROR] URL 파싱 실패: " + e.getMessage() + " / 원본 URL: " + originalUrl);
+            return null;
+        }
+    }
+
+    private String modifyUrlWithParam(String url, String param, int value) {
+        return url.contains(param + "=")
+                ? url.replaceAll(param + "=\\d+", param + "=" + value)
+                : url.contains("?") ? url + "&" + param + "=" + value
+                                    : url + "?" + param + "=" + value;
+    }
+
+    private Elements getProductElements(Document doc) {
+        return doc.select(String.join(", ", PRODUCT_SELECTORS));
+    }
+
+    private boolean isSoldOut(Element product) {
+        String text = product.text();
+        boolean hasSoldOutKeyword = text.contains("품절") || text.contains("SOLD OUT");
+
+        boolean hasSoldOutClass = !product.select(
+            ".soldout, p.soldout, span.soldout, .soldout-text, div.soldout-info, div.sold-out,dl > dd.sold,div.css-zl5as2,span.soldout-img"
+        ).isEmpty();
+
+        boolean hasDisableButton = !product.select(".pdBtnBox .btn.buy[onclick*='판매중이 아니거나 구매할 수 없는']").isEmpty();
+
+        boolean hasIcon6Image = !product.select("img[src*='icon/icon6.png']").isEmpty();
+        
+        boolean hasSoldOutPriceSpan = product.select("div.cont > div.price_w > span")
+        	    .stream()
+        	    .anyMatch(el -> el.text().contains("품절") || el.text().contains("SOLD OUT"));
+        
+        return hasSoldOutKeyword || hasSoldOutClass || hasDisableButton || hasIcon6Image || hasSoldOutPriceSpan ;
+    }
+
+    private boolean isInvalidHref(String href) {
+        return href.isEmpty() || href.startsWith("javascript") || href.contains("event") || href.contains("notice");
+    }
+}

@@ -1,0 +1,20 @@
+package com.scrap.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.scrap.repository.BooksReplyRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class BooksReplyService {
+	
+	private final BooksReplyRepository booksReplyRepository;
+
+	@Transactional
+	public void save() {
+		
+	} 
+}

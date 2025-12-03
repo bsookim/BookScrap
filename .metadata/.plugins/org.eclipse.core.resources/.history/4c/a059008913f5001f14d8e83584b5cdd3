@@ -1,0 +1,42 @@
+package com.shop.dto;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.shop.CoupangContents;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Setter
+public class CoupangContentsDto {
+
+	private String contentsType;
+	//O
+	@Builder.Default
+    private List<CoupangDetailsDto> contentDetails = new ArrayList<>();
+
+    private CoupangDto coupangDto;
+
+    private CoupangItemsDto coupangItemsDto;
+
+    private Long coupangId;
+    
+    private Long coupangItemsId;
+    
+    public static CoupangContentsDto fromEntity(CoupangContents contents) {
+        return CoupangContentsDto.builder()
+            .contentsType(contents.getContentsType())
+            .contentDetails(contents.getContentDetails().stream().map(CoupangDetailsDto::fromEntity).collect(Collectors.toList()))
+            .build();
+    }
+
+}

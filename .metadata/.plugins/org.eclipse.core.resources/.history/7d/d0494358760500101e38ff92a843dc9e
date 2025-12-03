@@ -1,0 +1,28 @@
+package com.coupang.dto.created;
+
+import java.util.List;
+
+import com.coupang.embedded.GoodsflowInfoOpenApi;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
+public class CoupangReturnShippingCreateDto {
+	
+	private String vendorId;
+	
+	private String userId;
+	
+	private String shshippingPlaceName;
+	
+	private GoodsflowInfoOpenApi goodsflowInfoOpenApiDto;
+	
+	private List<CoupangOutBoundPlaceAddressesCreateDto> placeAddresses;
+ 
+}

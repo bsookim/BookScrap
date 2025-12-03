@@ -1,0 +1,238 @@
+package com.coupang.dto.response;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import com.coupang.entity.Coupang;
+import com.coupang.entity.CoupangAttributes;
+import com.coupang.entity.CoupangContents;
+import com.coupang.entity.CoupangDetails;
+import com.coupang.entity.CoupangImages;
+import com.coupang.entity.CoupangItems;
+import com.coupang.entity.CoupangUserItemsStatus;
+import com.coupang.entity.CoupangUserTemplate;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class CoupangItemsDto {
+	
+	private Long id;
+	
+	private Long coupangId;
+	
+    private String itemName;
+    
+    private int originalPrice;
+    
+    private int salePrice;
+    
+    private int maximumBuyCount;
+    
+    private int maximumBuyForPerson;
+    
+    private int maximumBuyForPersonPeriod;
+    
+    private int outboundShippingTimeDay;
+    
+    private int unitCount;
+    
+    private String adultOnly;
+    
+    private String taxType;
+    
+    private String parallelImported;
+    
+    private String overseasPurchased;
+    
+    private boolean pccNeeded;
+    
+    private int optionPrice;
+    
+    @Builder.Default
+    private List<CoupangImagesDto> images = new ArrayList<>();
+
+    @Builder.Default
+    private List<CoupangAttributesDto> attributes = new ArrayList<>();
+
+    @Builder.Default
+    private List<CoupangContentsDto> contents = new ArrayList<>();
+    
+    @Builder.Default
+    private List<CoupangUserItemsStatusDto> status = new ArrayList<>();
+    
+    @Builder.Default
+    private List<String> searchTags = new ArrayList<>();
+    
+    public static CoupangItemsDto fromEntity(CoupangItems items,List<CoupangImages> itemImages, List<CoupangAttributes> itemAttributes,List<CoupangContents> itemContents,List<CoupangDetails> itemDetails) {
+    	return CoupangItemsDto.builder()
+   	            .id(items.getItemId())
+   	            .coupangId(items.getCoupang().getCoupangId())
+   	            .itemName(items.getItemName())
+   	            .originalPrice(items.getOriginalPrice())
+   	            .salePrice(items.getSalePrice())
+   	            .maximumBuyCount(items.getMaximumBuyCount())
+   	            .maximumBuyForPerson(items.getMaximumBuyForPerson())
+   	            .maximumBuyForPersonPeriod(items.getMaximumBuyForPersonPeriod())
+   	            .outboundShippingTimeDay(items.getOutboundShippingTimeDay())
+   	            .unitCount(items.getUnitCount())
+   	            .adultOnly(items.getAdultOnly())
+   	            .taxType(items.getTaxType())
+   	            .parallelImported(items.getParallelImported())
+   	            .overseasPurchased(items.getOverseasPurchased())
+   	            .pccNeeded(items.isPccNeeded())
+   	            .searchTags(new ArrayList<>())
+   	            .optionPrice(items.getOptionPrice())
+   	            .images(itemImages.stream().map(CoupangImagesDto::fromEntity).collect(Collectors.toList()))
+   	            .attributes(itemAttributes.stream().sorted(Comparator.comparing(CoupangAttributes::getAttributeTypeName)).map(CoupangAttributesDto::fromEntity).collect(Collectors.toList()))
+   	            .contents(itemContents.stream()
+   	                    .map(content -> {
+   	                        return CoupangContentsDto.fromEntity(content, itemDetails);
+   	                    })
+   	                    .collect(Collectors.toList()))
+   	            .build();
+    }
+    
+    public static CoupangItemsDto fromEntity(CoupangItems items,List<CoupangImages> itemImages, List<CoupangAttributes> itemAttributes,List<CoupangContents> itemContents,List<CoupangDetails> itemDetails, List<CoupangUserItemsStatus> coupangUserItemsStatus) {
+    	return CoupangItemsDto.builder()
+   	            .id(items.getItemId())
+   	            .coupangId(items.getCoupang().getCoupangId())
+   	            .itemName(items.getItemName())
+   	            .originalPrice(items.getOriginalPrice())
+   	            .salePrice(items.getSalePrice())
+   	            .maximumBuyCount(items.getMaximumBuyCount())
+   	            .maximumBuyForPerson(items.getMaximumBuyForPerson())
+   	            .maximumBuyForPersonPeriod(items.getMaximumBuyForPersonPeriod())
+   	            .outboundShippingTimeDay(items.getOutboundShippingTimeDay())
+   	            .unitCount(items.getUnitCount())
+   	            .adultOnly(items.getAdultOnly())
+   	            .taxType(items.getTaxType())
+   	            .parallelImported(items.getParallelImported())
+   	            .overseasPurchased(items.getOverseasPurchased())
+   	            .pccNeeded(items.isPccNeeded())
+   	            .searchTags(new ArrayList<>())
+   	            .images(itemImages.stream().map(CoupangImagesDto::fromEntity).collect(Collectors.toList()))
+   	            .attributes(itemAttributes.stream().sorted(Comparator.comparing(CoupangAttributes::getAttributeTypeName)).map(CoupangAttributesDto::fromEntity).collect(Collectors.toList()))
+   	            .contents(itemContents.stream()
+   	                    .map(content -> {
+   	                        return CoupangContentsDto.fromEntity(content, itemDetails);
+   	                    })
+   	                    .collect(Collectors.toList()))
+   	            .status(coupangUserItemsStatus.stream()
+	   	                .map(CoupangUserItemsStatusDto::fromEntity)
+	   	                .collect(Collectors.toList()))
+   	            .build();
+    }
+    
+    public static CoupangItemsDto fromEntity(
+    		Coupang coupang,
+            CoupangItems items,
+            List<CoupangImages> itemImages,
+            List<CoupangAttributes> itemAttributes,
+            List<CoupangContents> itemContents,
+            List<CoupangDetails> itemDetails,
+            Optional<CoupangUserTemplate> coupangTemplate,
+            String searchTags
+            ) {
+
+        if (!coupangTemplate.isPresent()) {
+            throw new IllegalArgumentException("CoupangTemplate 정보가 없습니다.");
+        }
+
+        CoupangUserTemplate template = coupangTemplate.get();
+
+        int originalPrice = items.getOriginalPrice();
+        int baseSalePrice = items.getSalePrice();
+        int baseOptionPrice = items.getOptionPrice();
+
+        String rawItemName = items.getItemName();
+        int extractedOptionPrice = 0;
+
+        Pattern pattern = Pattern.compile("\\(\\+([\\d,]+)원\\)|:\\s*\\+([\\d,]+)");
+        Matcher matcher = pattern.matcher(rawItemName);
+        if (matcher.find()) {
+            String priceStr = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+            try {
+                extractedOptionPrice = Integer.parseInt(priceStr.replaceAll(",", ""));
+            } catch (NumberFormatException e) {
+                extractedOptionPrice = 0;
+            }
+        }
+
+        rawItemName = rawItemName
+                .replaceAll(":\\s*[+-]?[\\d,]+", "")   
+                .replaceAll("\\([+-]?\\d+원\\)", "")    
+                .replaceAll("<<[^>]*>>", "")          
+                .replaceAll("\\*\\*[^*]*\\*\\*", "")   
+                .replaceAll("\\(\\([^)]*\\)\\)", "") 
+                .trim();
+
+        String optionName = rawItemName;
+
+        int finalOptionPrice = baseOptionPrice > 0 ? baseOptionPrice : extractedOptionPrice;
+
+        int inflatedOptionPrice = (int) Math.ceil(finalOptionPrice * 1.8 / 10.0) * 10;
+        int inflatedSalePrice   = (int) Math.ceil(baseSalePrice * 1.6 / 10.0) * 10;
+
+        int baseFinalPrice = Math.max(originalPrice, inflatedSalePrice);
+        int finalPrice = baseFinalPrice + inflatedOptionPrice;
+
+        return CoupangItemsDto.builder()
+                .id(items.getItemId())
+                .coupangId(items.getCoupang().getCoupangId())
+                .itemName(optionName)
+                .originalPrice(finalPrice)
+                .salePrice(finalPrice)
+                .maximumBuyCount(template.getMaximumBuyCount())
+                .maximumBuyForPerson(template.getMaximumBuyForPerson())
+                .maximumBuyForPersonPeriod(template.getMaximumBuyForPersonPeriod())
+                .outboundShippingTimeDay(template.getOutboundShippingTimeDay())
+                .unitCount(template.getUnitCount())
+                .adultOnly(template.getAdultOnly())
+                .taxType(template.getTaxType())
+                .parallelImported(template.getParallelImported())
+                .overseasPurchased(template.getOverseasPurchased())
+                .pccNeeded(template.isPccNeeded())
+                .searchTags(
+                	    new ArrayList<>(
+                	        coupang.getKeyword() == null || coupang.getKeyword().isBlank() 
+                	        ? Arrays.stream(searchTags.split(","))
+                	                .map(String::trim)
+                	                .filter(s -> !s.isEmpty())
+                	                .limit(20)                  
+                	                .toList()
+                	        : Arrays.stream(coupang.getKeyword().split(","))
+                	                .map(String::trim)
+                	                .filter(s -> !s.isEmpty())
+                	                .limit(20)                  
+                	                .toList()
+                	    )
+                	)
+                .optionPrice(finalOptionPrice)
+                .images(itemImages.stream()
+                        .map(CoupangImagesDto::fromEntity)
+                        .collect(Collectors.toList()))
+                .attributes(itemAttributes.stream()
+                        .sorted(Comparator.comparing(CoupangAttributes::getAttributeTypeName))
+                        .map(CoupangAttributesDto::fromEntity)
+                        .collect(Collectors.toList()))
+                .contents(itemContents.stream()
+                        .map(content -> CoupangContentsDto.fromEntity(content, itemDetails))
+                        .collect(Collectors.toList()))
+                .build();
+        }
+
+}

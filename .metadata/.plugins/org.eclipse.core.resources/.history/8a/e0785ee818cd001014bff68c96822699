@@ -1,0 +1,43 @@
+package com.scrap.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.scrap.dto.BookDto;
+import com.scrap.dto.BookReplyDto;
+import com.scrap.entity.BookReply;
+import com.scrap.repository.BookReplyRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Service
+@Transactional
+public class BookReplyService {
+
+	private final BookReplyRepository bookReplyRepository;
+	
+	public void replySave() {
+		bookReplyRepository.save(null);
+	}
+
+	@Transactional(readOnly=true)
+	public List<BookReplyDto> replyFindAll() {
+		List<BookReply> reply = bookReplyRepository.findAll(); 
+		List<BookReplyDto> list= BookReplyDto.replyFindAll(reply);
+		return list;
+	}
+	
+	//bookService에 bookUpdate 주석 참고 더티체킹 설명되어있음.
+	public void replyUpdate(Long id, String content) {
+		BookReply bookReply =bookReplyRepository.findById(id).orElseThrow();
+		bookReply.update(content);
+		bookReplyRepository.save(bookReply);
+	}
+
+	
+}

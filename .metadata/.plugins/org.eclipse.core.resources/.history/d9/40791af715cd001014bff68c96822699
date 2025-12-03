@@ -1,0 +1,24 @@
+package com.scrap.controller;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.scrap.service.BookReplyService;
+
+import lombok.RequiredArgsConstructor;
+
+@RequestMapping("/bookReply")
+@RequiredArgsConstructor
+@RestController
+@CrossOrigin("http://localhost:3001")
+public class BookReplyController {
+	
+	private final BookReplyService bookReplyService; 
+	
+	
+	public void replySave() {
+		bookReplyService.save();
+	}
+	
+}

@@ -1,0 +1,25 @@
+package com.scrap.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.scrap.entity.BooksReply;
+import com.scrap.repository.BooksReplyRepository;
+import com.scrap.request.BooksReplyRequest;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class BooksReplyService {
+	
+	private final BooksReplyRepository booksReplyRepository;
+
+	@Transactional
+	public void save(BooksReplyRequest booksReplyRequest) {
+		BooksReply reply= BooksReply.builder()
+				.content(booksReplyRequest.getContent())
+				.build();
+//		booksReplyRepository.save(null)
+	} 
+}

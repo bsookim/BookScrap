@@ -1,0 +1,49 @@
+package com.shop;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@NoArgsConstructor
+@Getter
+@Setter
+public class CoupangUserItemsStatus {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "coupangStatusSeq")
+	@SequenceGenerator(name = "coupangStatusSeq", sequenceName = "coupang_item_status_seq", allocationSize = 200)
+	private Long coupangUserItemsId;
+	
+	private String sendYn;
+	
+	private Long coupangProductId;
+	
+	@JsonBackReference
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name ="user_id")
+	private CoupangUser coupangUser;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="items_id")
+//	@JoinColumns({
+//        @JoinColumn(name = "item_id", referencedColumnName = "coupang_item_id", insertable = false, updatable = false),
+//        @JoinColumn(name = "coupang_id", referencedColumnName = "coupang_id", insertable = false, updatable = false)
+//    })
+	private CoupangItems coupangItems;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="id")
+	private Coupang coupang;
+}

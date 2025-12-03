@@ -1,0 +1,5 @@
+package com.shop.jdbc;
+
+public class JdbcRepository {
+
+}

@@ -1,0 +1,48 @@
+package com.shop.dto;
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.shop.Coupang;
+import com.shop.CoupangImages;
+import com.shop.CoupangItems;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Builder
+@Setter
+public class CoupangImagesDto {
+
+	private int imageOrder;
+	
+	private String imageType;
+	
+	private String cdnPath;
+	
+	private String vendorPath;
+	
+	private Long coupangItemsId;
+	
+	private Long coupangId;
+	
+	public static CoupangImagesDto fromEntity(CoupangImages images) {
+        return CoupangImagesDto.builder()
+            .imageOrder(images.getImageOrder())
+            .imageType(images.getImageType())
+            .cdnPath(images.getCdnPath())
+            .vendorPath(images.getVendorPath())
+            .coupangId(images.getCoupang().getCoupangId())
+            .coupangItemsId(images.getCoupangItems().getItemId())
+            .build();
+	}
+	
+}

@@ -1,0 +1,33 @@
+package com.scrap.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.scrap.dto.BookReplyDto;
+import com.scrap.repository.BookReplyRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Service
+@Transactional
+public class BookReplyService {
+
+	private final BookReplyRepository bookReplyRepository;
+	
+	public void save() {
+		bookReplyRepository.save(null);
+	}
+
+	@Transactional(readOnly=true)
+	public List<BookReplyDto> replyFindAll() {
+		return null;
+	}
+	
+	public void update(Long id,) {
+		
+	}
+	
+}

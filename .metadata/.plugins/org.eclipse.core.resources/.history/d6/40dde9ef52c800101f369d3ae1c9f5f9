@@ -1,0 +1,5 @@
+package com.scrap.entity;
+G
+public class BookReply extends BaseTimeEntity{
+
+}

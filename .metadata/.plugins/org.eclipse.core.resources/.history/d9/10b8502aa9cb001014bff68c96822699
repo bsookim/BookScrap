@@ -1,0 +1,73 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Link, useLocation } from 'react-router-dom';
+import '../styles/list.css';
+
+const List = () => {
+  const [books, setBooks] = useState([]);
+  const [page, setPage] = useState(0);
+  const [size] = useState(27);
+
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const category = params.get("category");
+
+  useEffect(() => {
+    setPage(0);
+  }, [category]);
+
+  const fetchBooks = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8080/books/list?page=${page}&size=${size}${
+          category ? `&category=${category}` : ""
+        }`
+      );
+      setBooks(res.data.content);
+    } catch (err) {
+      console.error("조회 실패:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBooks();
+  }, [page, category]);
+
+  return (
+    <div className="list-layout">
+      <div className="list-content">
+        <h1 className="list-title">
+          도서 목록 {category && ` - ${category}`}
+        </h1>
+
+        <div className="book-grid">
+          {books.map((b) => (
+            <Link to={`/detail/${b.id}`} key={b.id} className="book-card">
+              <img src={b.thumbNail} alt={b.title} className="book-img" />
+              <p className="book-title">{b.title}</p>
+              <p className="book-price">{b.price}</p>
+            </Link>
+          ))}
+        </div>
+
+        <div className="pagination">
+          <button
+            onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+            disabled={page === 0}
+          >
+            이전
+          </button>
+            <span>현재 페이지: {page + 1}</span>
+          <button
+            onClick={() => setPage((prev) => prev + 1)}
+            disabled={books.length < size}
+          >
+            다음
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default List;

@@ -1,0 +1,50 @@
+package com.scrap.response;
+
+import com.scrap.entity.Books;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class BooksResponse {
+	
+	private Long id;
+	
+	private String title;
+	
+	private String price;
+	
+	private String stock;
+	
+	private String descpription;
+	
+	private String upc;
+	
+	private String productType;
+
+	private String currnetUrl;
+	
+	
+	public static BooksResponse booksResponse(Books books) {
+
+		return BooksResponse.builder()
+						.id(books.getId())
+						.title(books.getTitle())
+						.price(books.getPrice())
+						.stock(books.getStock())
+						.descpription(books.getDescpription())
+						.upc(books.getUpc())
+						.productType(books.getProductType())
+						.currnetUrl(books.getCurrnetUrl())
+						.build();
+		
+	}
+
+
+	
+}

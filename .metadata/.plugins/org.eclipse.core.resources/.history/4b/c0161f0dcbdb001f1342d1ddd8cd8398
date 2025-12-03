@@ -1,0 +1,38 @@
+package com.shop.listener;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.events.WebDriverListener;
+
+import com.shop.selenium.dto.SCoupangLoginDto;
+
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
+public class CustomWebDriverListener implements WebDriverListener {
+
+    private final WebDriver driver;
+
+    @Override
+    public void beforeTo(WebDriver.Navigation navigation, String url) {
+    	System.out.println("=====================1=======================");
+    	System.out.println("driver============>"+driver.getCurrentUrl());
+    	System.out.println("url============>"+url);
+    	System.out.println("=====================1=======================");
+    }
+    
+    @Override
+    public void afterTo(WebDriver.Navigation navigation, String url) {
+
+    	System.out.println("=======================2=====================");
+    	System.out.println("driver============>"+driver.getCurrentUrl());
+    	System.out.println("url============>"+url);
+    	System.out.println("=======================2=====================");
+    	if(driver.getCurrentUrl().equals("https://www.costco.co.kr/login")) {
+    		 SCoupangLoginDto login = new SCoupangLoginDto(driver);
+    		 login.loginClick("qudtn6085", "qudtn!4589");
+    		
+    	}
+
+    }
+    
+}

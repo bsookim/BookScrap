@@ -1,0 +1,127 @@
+package com.shop.controller;
+
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.shop.dto.CoupangDto;
+import com.shop.dto.CoupangOutBoundDto;
+import com.shop.dto.CoupangRequestDto;
+import com.shop.dto.CoupangReturnDto;
+import com.shop.dto.CoupangUserProfileDto;
+import com.shop.selenium.dto.ShopLoginDto;
+import com.shop.selenium.jwt.JwtUtil;
+import com.shop.service.CoupangService;
+import com.shop.service.CoupangUserService;
+
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/coupang")
+@RequiredArgsConstructor
+@CrossOrigin("http://localhost:3000/")
+public class CoupangController {
+	private final CoupangService service;
+	private final CoupangUserService userService;
+	
+	@GetMapping("/detail")
+	public CoupangDto coupangDetail(@RequestHeader("Authorization") String authHeader,@RequestParam("coupangId") Long coupangId,@RequestParam("userId") int userId) {
+	    String token = authHeader.replace("Bearer ", "");
+
+	    // 토큰 검증 로직 추가
+	    if (JwtUtil.isTokenExpired(token)) {
+	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token is expired");
+	    }
+	    return service.getCoupangDetail(coupangId,userId);
+	}
+	
+	/*
+	 * Security 기본 설정 때문에 list 요청시 login 에러로 list가 호출이 안됨 
+	 * Application에 (exclude = SecurityAutoConfiguration.class) 해당 설정으로 
+	 * Security login 막아두면 list요청시 에러 없음  
+	 */
+	
+	@GetMapping("/list")
+	public Page<CoupangDto> coupangList(Pageable pageable, @RequestHeader("Authorization") String authHeader,@RequestParam("id") int id,@RequestParam("searchKeyword") String searchKeyword) {
+	    String token = authHeader.replace("Bearer ", "");
+
+	    // 토큰 검증 로직 추가
+	    if (JwtUtil.isTokenExpired(token)) {
+	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token is expired");
+	    }
+	    return service.getCoupangDto(pageable, id, searchKeyword);
+	}
+	
+	@GetMapping("/del/list")
+	public Page<CoupangDto> coupangDelList(Pageable pageable, @RequestHeader("Authorization") String authHeader,@RequestParam("id") int id) {
+	    String token = authHeader.replace("Bearer ", "");
+	    // 토큰 검증 로직 추가
+	    if (JwtUtil.isTokenExpired(token)) {
+	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token is expired");
+	    }
+	    return service.getDelCoupangDto(pageable,id);
+	}
+	
+	//대량업로드
+	@PostMapping("/save")
+	public void coupangSave(@RequestBody ShopLoginDto shopLoginDto) throws InterruptedException, MalformedURLException {
+		service.loginUrl(shopLoginDto.getUsername(),
+				shopLoginDto.getPassword(),
+				shopLoginDto.getUrl(),
+				shopLoginDto.getStartPage(),
+				shopLoginDto.getEndPage()
+		);
+		
+	}
+	
+	@PostMapping("/send/product")
+	public List<CoupangDto> coupangSendProduct(@RequestBody CoupangRequestDto selectedCoupangProducts) throws URISyntaxException{
+		return service.selectedListCoupang(selectedCoupangProducts);
+	}
+	
+	@PostMapping("/user/outbound-shipping")
+	public void outboundShipping(@RequestBody CoupangOutBoundDto coupangOutBoundDto) {
+		service.outboundShipping(coupangOutBoundDto);
+	}
+	
+	@PostMapping("/user/return-shipping")
+	public void returnShipping(@RequestBody CoupangReturnDto coupangReturnDto) {
+		service.returnShipping(coupangReturnDto);
+	}
+
+	@PostMapping("/naver/login/callbackUrl")
+	public CoupangUserProfileDto userNaverLogin(@RequestParam("code") String code, @RequestParam("state") String state) {
+	    return userService.userNaverLogin(code, state);
+	}
+	
+	@DeleteMapping("/delete")
+	public void coupangDelete(@RequestParam("id") Long id, @RequestParam("productSellerId") long productSellerId) throws InterruptedException {
+		service.deleteCoupang(id, productSellerId);
+	}
+	
+	@DeleteMapping("/stock/delete")
+	public void coupangStockDelete(@RequestParam("email") String email) throws InterruptedException {
+		service.stockCoupangDelete(email);
+	}
+	
+	@DeleteMapping("/one/delete")
+	public void coupangOneDelete(@RequestParam("id") Long id) throws InterruptedException {
+		service.deleteOneCoupang(id);
+	}
+	
+} 
+

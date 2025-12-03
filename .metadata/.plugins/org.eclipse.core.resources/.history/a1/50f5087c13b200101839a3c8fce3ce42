@@ -1,0 +1,209 @@
+package com.coupang.scrap.login;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
+
+import org.openqa.selenium.WebDriver;
+
+import com.coupang.scrap.list.AllThatFactoryProductListPage;
+import com.coupang.scrap.list.BonniepetProductListPage;
+import com.coupang.scrap.list.DdakpetProductListPage;
+import com.coupang.scrap.list.EchobelleProductListPage;
+import com.coupang.scrap.list.FeelwooProductListPage;
+import com.coupang.scrap.list.JapanFoodMallProductListPage;
+import com.coupang.scrap.list.KakamukaProductListPage;
+import com.coupang.scrap.list.ModooSaleProductListPage;
+import com.coupang.scrap.list.OffRunProductListPage;
+import com.coupang.scrap.list.OwnerClanProductListPage;
+import com.coupang.scrap.list.PettobProductListPage;
+import com.coupang.scrap.list.ProFishingProductListPage;
+import com.coupang.scrap.list.ProductListPage;
+import com.coupang.scrap.list.ThreeMroProductListPage;
+import com.coupang.scrap.list.ZentradeProductListPage;
+import com.coupang.scrap.naver.list.ElevenstProductListPage;
+import com.coupang.scrap.naver.list.SuperDeliveryProductListPage;
+import com.coupang.scrap.soldout.AllThatFactorySoldOutPage;
+import com.coupang.scrap.soldout.BonniepetSoldOutPage;
+import com.coupang.scrap.soldout.DdakpetSoldOutPage;
+import com.coupang.scrap.soldout.EchobelleSoldOutPage;
+import com.coupang.scrap.soldout.ElevenstSoldOutPage;
+import com.coupang.scrap.soldout.FeelwooSoldOutPage;
+import com.coupang.scrap.soldout.JapanFoodMallSoldOutPage;
+import com.coupang.scrap.soldout.KakamukaSoldOutPage;
+import com.coupang.scrap.soldout.ModooSaleSoldOutPage;
+import com.coupang.scrap.soldout.OffRunSoldOutPage;
+import com.coupang.scrap.soldout.OwnerClanSoldOutPage;
+import com.coupang.scrap.soldout.PettobSoldOutPage;
+import com.coupang.scrap.soldout.ProFishingSoldOutPage;
+import com.coupang.scrap.soldout.SoldOutPage;
+import com.coupang.scrap.soldout.SuperDeliverySoldOutPage;
+import com.coupang.scrap.soldout.ThreeMroSoldOutPage;
+import com.coupang.scrap.soldout.ZentradeSoldOutPage;
+
+public enum CoupangLoginSite {
+	
+    PETTOB("https://pettob.co.kr/shop/main/intro_member.php?returnUrl=%2Fshop%2Fmain%2Findex.php", 
+    		PettobLoginPage.class,
+    		PettobProductListPage.class, 
+    		PettobSoldOutPage.class,
+    		Arrays.asList("pettob")
+    		),
+	BONNIEPET("http://bonniepet.co.kr/member/login.php",
+			BonniepetLoginPage.class,
+			BonniepetProductListPage.class,
+			BonniepetSoldOutPage.class,
+			Arrays.asList("bonniepet") 
+			),
+	JAPANFOODMALL("https://www.japanfoodmall.com/member/login.php",
+			JapanFoodMallLoginPage.class,
+			JapanFoodMallProductListPage.class,
+			JapanFoodMallSoldOutPage.class,
+			Arrays.asList("japanfoodmall")
+			),
+	ZENTRADE("https://www.zentrade.co.kr/shop/member/login.php",
+			ZentradeLoginPage.class,
+			ZentradeProductListPage.class,
+			ZentradeSoldOutPage.class,
+			Arrays.asList("zentrade")
+			),
+	OWNERCLAN("https://ownerclan.com/V2/member/loginform.php",
+			OwnerClanLoginPage.class,
+			OwnerClanProductListPage.class,
+			OwnerClanSoldOutPage.class,
+			Arrays.asList("ownerclan")
+			),
+	ALLTHATFACTORY("https://allthatfactory.co.kr/member/member.html?mode=login",
+			AllThatFactoryLoginPage.class,
+			AllThatFactoryProductListPage.class,
+			AllThatFactorySoldOutPage.class,
+			Arrays.asList("allthatfactory")
+			),
+	ECHOBELLE("https://echobelle.e3pl.kr/",
+			EchobelleLoginPage.class,
+			EchobelleProductListPage.class,
+			EchobelleSoldOutPage.class,
+			Arrays.asList("echobelle")
+			),
+	PROFISHING("https://pfb2b.co.kr/",
+			ProFishingLoginPage.class,
+			ProFishingProductListPage.class,
+			ProFishingSoldOutPage.class,
+			Arrays.asList("pfb2b")
+			),
+	FEELWOO("https://feelwoo.com/member/login.php",
+			FeelwooLoginPage.class,
+			FeelwooProductListPage.class,
+			FeelwooSoldOutPage.class,
+			Arrays.asList("feelwoo")
+			),
+	KAKAMUKA("https://kakamuka.com/member/login.html",
+			KakamukaLoginPage.class,
+			KakamukaProductListPage.class,
+			KakamukaSoldOutPage.class,
+			Arrays.asList("kakamuka")
+			),
+	DDAKPET("https://www.ddakpet.com/team3f/myshop/login?join=false",
+			DdakpetLoginPage.class,
+			DdakpetProductListPage.class,
+			DdakpetSoldOutPage.class,
+			Arrays.asList("kakamuka")
+			),
+	MODOOSALE("https://www.modoosale.co.kr/member/login.php",
+			ModooSaleLoginPage.class,
+			ModooSaleProductListPage.class,
+			ModooSaleSoldOutPage.class,
+			Arrays.asList("modoosale")
+			),
+	OFFRUN("https://offrun.kr/main/signIn",
+			OffRunLoginPage.class,
+			OffRunProductListPage.class,
+			OffRunSoldOutPage.class,
+			Arrays.asList("offrun")),
+	ELEVENST("https://login.11st.co.kr/auth/v2/login?isPopup=false&adultLoginRequired=N&returnURL=https%3A%2F%2Fbuy.11st.co.kr%2Fmy11st%2Forder%2FmyTmall.tmall%3Fmethod%3DgetMyTmallMain&isNonMemberBuy=false",
+			ElevenstLoginPage.class,
+			ElevenstProductListPage.class,
+			ElevenstSoldOutPage.class,
+			Arrays.asList("elevenst")
+	),
+	THREEMRO("https://www.3mro.co.kr/bbs/login.php",
+			ThreeMroLoginPage.class,
+			ThreeMroProductListPage.class,
+			ThreeMroSoldOutPage.class,
+			Arrays.asList("3mro")
+	),
+	SUPERDELIVERY("https://www.superdelivery.com/p/do/clickMemberLogin",
+			SuperDeliveryLoginPage.class,
+			SuperDeliveryProductListPage.class,
+			SuperDeliverySoldOutPage.class,
+			Arrays.asList("superdelivery")
+	);
+	
+    
+	private final String loginUrl;
+    private final Class<? extends LoginPage> pageClass;
+    private final Class<? extends ProductListPage> productPageClass;
+    private final Class<? extends SoldOutPage> soldOutPageClass;
+    private final List<String> aliases;
+
+    LoginSite(String loginUrl,
+              Class<? extends LoginPage> pageClass,
+              Class<? extends ProductListPage> productPageClass,
+              Class<? extends SoldOutPage> soldOutPageClass,
+              List<String> aliases) {
+        this.loginUrl = loginUrl;
+        this.pageClass = pageClass;
+        this.productPageClass = productPageClass;
+        this.soldOutPageClass = soldOutPageClass;
+        this.aliases = aliases;
+    }
+
+	public boolean matches(String siteName) {
+        if (siteName == null) return false;
+        return aliases.stream().anyMatch(a -> a.equalsIgnoreCase(siteName));
+    }
+
+    public String getLoginUrl() { return loginUrl; }
+    public Class<? extends LoginPage> getPageClass() { return pageClass; }
+    public Class<? extends ProductListPage> getProductPageClass() { return productPageClass; }
+
+    public static LoginSite fromDomain(String domain) {
+        if (domain == null) return null;
+
+        if (domain.endsWith("11st.co.kr")) {
+            domain = "11st.co.kr";
+        }
+
+        for (LoginSite site : values()) {
+            try {
+                String siteDomain = new URL(site.loginUrl).getHost().toLowerCase();
+                if (siteDomain.equals(domain) || siteDomain.endsWith(domain)) {
+                    return site;
+                }
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    public ProductListPage createProductListPage(WebDriver driver, String url, int endPage) {
+        try {
+            return productPageClass
+                     .getDeclaredConstructor(WebDriver.class, String.class, int.class)
+                     .newInstance(driver, url, endPage);
+        } catch (Exception e) {
+            throw new RuntimeException("ProductListPage 생성 실패: " + this.name(), e);
+        }
+    }
+
+    public SoldOutPage createSoldOutPage() {
+        try {
+            return soldOutPageClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("SoldOutPage 생성 실패", e);
+        }
+    }
+    
+}

@@ -1,0 +1,27 @@
+package com.scrap.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.scrap.dto.BookReplyDto;
+import com.scrap.repository.BookCategoryRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class BookCategoryService {
+
+	private final BookCategoryRepository bookCategoryRepository; 
+	
+	@Transactional(readOnly = true)
+	public List<BookCategoryDto> categoryFindAll() {
+		bookCategoryRepository.findAll();
+		return null;
+//		return bookCategoryRepository.findAll();
+	}
+
+}

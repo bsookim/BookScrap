@@ -1,0 +1,87 @@
+package com.shop.dto;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.shop.CoupangItems;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Setter
+public class CoupangItemsDto {
+	private Long id;
+	
+	private Long coupangId;
+	
+    private String itemName;
+    
+    private int originalPrice;
+    
+    private int salePrice;
+    
+    private int maximumBuyCount;
+    
+    private int maximumBuyForPerson;
+    
+    private int maximumBuyForPersonPeriod;
+    
+    private int outboundShippingTimeDay;
+    
+    private int unitCount;
+    
+    private String adultOnly;
+    
+    private String taxType;
+    
+    private String parallelImported;
+    
+    private String overseasPurchased;
+    
+    private Boolean pccNeeded;
+    
+    private List<CoupangImagesDto> images = new ArrayList<>();
+    
+    private List<CoupangAttributesDto> attributes = new ArrayList<>();
+
+    private List<CoupangContentsDto> contents = new ArrayList<>();
+
+    private List<CoupangUserItemsStatusDto> status = new ArrayList<>();
+
+    public static CoupangItemsDto fromEntity(CoupangItems items) {
+    	 return CoupangItemsDto.builder()
+    	            .id(items.getItemId())
+    	            .coupangId(items.getCoupang().getCoupangId())
+    	            .itemName(items.getItemName())
+    	            .originalPrice(items.getOriginalPrice())
+    	            .salePrice(items.getSalePrice())
+    	            .maximumBuyCount(items.getMaximumBuyCount())
+    	            .maximumBuyForPerson(items.getMaximumBuyForPerson())
+    	            .maximumBuyForPersonPeriod(items.getMaximumBuyForPersonPeriod())
+    	            .outboundShippingTimeDay(items.getOutboundShippingTimeDay())
+    	            .unitCount(items.getUnitCount())
+    	            .adultOnly(items.getAdultOnly())
+    	            .taxType(items.getTaxType())
+    	            .parallelImported(items.getParallelImported())
+    	            .overseasPurchased(items.getOverseasPurchased())
+    	            .pccNeeded(items.getPccNeeded())
+    	            .images(items.getImages().stream().map(CoupangImagesDto::fromEntity).collect(Collectors.toList()))
+    	            .attributes(items.getAttributes().stream().map(CoupangAttributesDto::fromEntity).collect(Collectors.toList()))
+    	            .contents(items.getContents().stream().map(CoupangContentsDto::fromEntity).collect(Collectors.toList()))
+    	            .searchTags(new ArrayList<>(items.getSearchTags()))
+    	            .status(items.getCoupangUserItemsStatus().stream().map(CoupangUserItemsStatusDto::fromEntity).collect(Collectors.toList()))
+    	            .build();
+    }
+    
+}

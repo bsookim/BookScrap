@@ -1,0 +1,80 @@
+package com.shop.selenium.dto;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindAll;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+
+import com.shop.selenium.config.ELoginUrl;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class SCoupangLoginDto {
+    private WebDriver driver;
+
+    @FindBy(id = "member_id")
+    private WebElement usernameField;
+
+    @FindBy(id = "member_passwd")
+    private WebElement passwordField;
+
+    @FindAll({
+    	@FindBy(css = "form > div > div > fieldset > a > img"),
+    	@FindBy(css = "form > div > div > fieldset > a"),
+    })
+    private WebElement loginButton;
+
+    public SCoupangLoginDto(WebDriver driver) {
+        this.driver = driver;
+        PageFactory.initElements(driver, this);
+    }
+
+	public String click(String username, String password,String url) {
+		try {
+		    URL urlString = new URL(url);
+		    String domain = urlString.getHost();
+
+		    if ((username != null && !username.trim().isEmpty()) && 
+		        (password != null && !password.trim().isEmpty())) {
+		        
+		        driver.manage().window().maximize();
+		        
+		        if ("sosohome.co.kr".equals(domain)) {
+		            driver.get(ELoginUrl.SOSOHOME.getUrl());   
+		        } else if ("trycozy.com".equals(domain)) {
+		            driver.get(ELoginUrl.TRYCOZY.getUrl());   
+		        } else {
+		            return "지원하지 않는 도메인입니다.";
+		        }
+		        
+		        usernameField.sendKeys(username);
+		        passwordField.sendKeys(password);
+		        loginButton.click();
+
+		        driver.get(url);
+		        
+		        return "로그인되었습니다."; 
+
+		    } else {
+		        return "아이디와 패스워드를 입력해주세요.";
+		    }
+
+		} catch (MalformedURLException e) {
+		    return "잘못된 URL 형식입니다.";
+		}	
+	}
+}
+
+
+//By ID: @FindBy(id = "elementId")
+//By Name: @FindBy(name = "elementName")
+//By Class Name: @FindBy(className = "className")
+//By CSS Selector: @FindBy(css = "cssSelector")
+//By XPath: @FindBy(xpath = "xpathExpression")
