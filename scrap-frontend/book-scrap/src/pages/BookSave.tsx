@@ -11,10 +11,10 @@ const BookSave: React.FC = () => {
     const requestData: BookUrlRequest = { currentUrl };
     try {
       await axios.post("http://localhost:8080/book/save", requestData);
-      console.log("서버에 URL 저장 요청 완료!");
+   
       navigate("/")
     } catch (error) {
-      console.error("에러 발생:", error);
+      console.error("에러", error);
     }
   };
 
