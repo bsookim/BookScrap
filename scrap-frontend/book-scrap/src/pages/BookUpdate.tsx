@@ -13,7 +13,7 @@ const BookUpdate: React.FC = () => {
             await axios.put(`http://localhost:8080/book/update/${id}`, {title});
             navigate(`/detail/${id}`)
         } catch (error) {
-            console.error("에러 발생:", error);
+            console.error("에러", error);
         }
     };
 
