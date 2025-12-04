@@ -13,20 +13,37 @@
 <h3>Database</h3>
 - Postgresql
 
+<be>
+
 스크래핑 사이트 <br>
+
 https://books.toscrape.com/
+<br>
 
-TABLE 정보
-book table book 상품 정보
-book_categories table book에 포함되어있는 카테고리 정보  
-book_category table 게시글 리스트 페이지에 있는 카테고리 정보
+필드명         타입              설명                                    
+id            Long              PK, 자동 증가                           
+title         String            상품명                                  
+price         String            가격                                   
+stock         String            재고                                   
+description   String            상품 설명                                
+upc           String            UPC 코드                               
+productType   String            상품 타입                                
+currentUrl    String            원본 상품 URL                            
+thumbNail     String            썸네일 이미지 URL                          
+bookReply     List<BookReply>   댓글 엔티티(1:N, Cascade + orphanRemoval) 
+categories   List<String>       카테고리 문자열 리스트(값 타입 컬렉션)               |
 
-categories테이블과 category 테이블의 하는 역할이 다름
 
-book_reply table 댓글 테이블
+<br>
 
-카테고리 정보 스크래핑 insert
-book정보 스크래핑 insert
+필드명         타입     설명          
+id            Long     PK          
+categoryUrl   String   카테고리 원본 URL 
+categoryName  String   카테고리 이름     
+
+
+
+
 
 <center>
   <img src="https://github.com/user-attachments/assets/b3be45c3-1658-427f-8bc9-8605fd2972a0" width="500" />
