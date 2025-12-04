@@ -72,7 +72,7 @@ https://books.toscrape.com/
     
   <h2>Book 기능</h2>
 
-  EndPoint <br>
+  Book EndPoint <br>
   /book//findByCategoryName/{categoryName} <br>
   /book/find/{id} <br>
   /book/save <br>
@@ -90,7 +90,7 @@ https://books.toscrape.com/
   
   <h2>BookReply 기능</h2>
 
-  EndPoint <br>
+  BookReply EndPoint <br>
   /bookReply/{id}/save <br>
   /bookReply/list <br>
   /bookReply/{replyId}/update <br>
@@ -106,7 +106,7 @@ https://books.toscrape.com/
   
   <h2>BookCategory 기능</h2>
 
-  EndPoint <br>
+  BookCategory EndPoint <br>
   /bookCategory/findAll <br>
   
   
