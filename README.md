@@ -20,7 +20,6 @@
 <be>
 
 스크래핑 사이트 <br>
-
 https://books.toscrape.com/
 
 <br>
