@@ -33,8 +33,8 @@ https://books.toscrape.com/
 | productType | String          | 상품 타입                                |
 | currentUrl  | String          | 원본 상품 URL                            |
 | thumbNail   | String          | 썸네일 이미지 URL                          |
-| bookReply   | List<BookReply> | 댓글 엔티티(1:N, Cascade + orphanRemoval) |
-| categories  | List<String>    | 카테고리 문자열 리스트(값 타입 컬렉션)               |
+| bookReply   | List<BookReply> | Book 1:다 Reply 관계                             |
+| categories  | List<String>    | 카테고리 문자열 리스트               |
 
 
 | 필드명          | 타입     | 설명          |
@@ -48,7 +48,7 @@ https://books.toscrape.com/
 | ------- | ------ | ------------------ |
 | id      | Long   | PK                 |
 | content | String | 댓글 내용              |
-| book    | Book   | Book과 다대일 관계 (N:1) |
+| book    | Book   | Reply 다:1 Book 관계 |
 
 
 
