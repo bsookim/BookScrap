@@ -71,6 +71,13 @@ https://books.toscrape.com/
   스크래핑된 데이터는 다음과 같이 활용됩니다.
     
   <h2>Book 기능</h2>
+
+  EndPoint
+  /book//findByCategoryName/{categoryName}
+  /book/find/{id}
+  /book/save
+  /book/update/{id}
+  /book/delete/{id}
   
   Book 등록
   
@@ -82,6 +89,12 @@ https://books.toscrape.com/
   
   
   <h2>BookReply 기능</h2>
+
+  EndPoint
+  /bookReply/{id}/save
+  /bookReply/list
+  /bookReply/{replyId}/update
+  /bookReply/delete/{replyId}
   
   댓글 등록
   
@@ -92,6 +105,10 @@ https://books.toscrape.com/
   댓글 삭제
   
   <h2>BookCategory 기능</h2>
+
+  EndPoint
+  /bookCategory/findAll
+  
   
   카테고리 등록
   
