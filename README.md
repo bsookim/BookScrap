@@ -96,8 +96,6 @@ https://books.toscrape.com/
   
   카테고리 조회
   
-  본 프로젝트는 Selenium을 활용한 웹 스크래핑 자동화를 목표로 하여 구현되었습니다.
-  
   감사합니다.
   </span>
 </center>
