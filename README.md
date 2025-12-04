@@ -67,7 +67,7 @@ https://books.toscrape.com/
   본 프로젝트는 https://books.toscrape.com/ 사이트의
   상품 정보와 카테고리 정보를 Selenium을 이용해 자동 스크래핑하여
   데이터베이스에 CRUD 기능을 중심으로 제작되었습니다.
-  스크래핑된 데이터는 다음과 같이 활용됩니다:
+  스크래핑된 데이터는 다음과 같이 활용됩니다.
     
   <h2>Book 기능</h2>
   
