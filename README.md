@@ -11,7 +11,7 @@ categories테이블과 category 테이블의 하는 역할이 다름
 book_reply table 댓글 테이블
 
 <center>
-  <img src="https://github.com/user-attachments/assets/b3be45c3-1658-427f-8bc9-8605fd2972a0" width="500" />
+  <img src="https://github.com/user-attachments/assets/b3be45c3-1658-427f-8bc9-8605fd2972a0" width="500" /><br>
   <img src="https://github.com/user-attachments/assets/a6d8a1e6-eb74-40ca-bb24-8205458b6ffc" width="500" />
 
 
