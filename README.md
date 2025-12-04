@@ -73,11 +73,11 @@ https://books.toscrape.com/
   <h2>Book 기능</h2>
 
   EndPoint
-  /book//findByCategoryName/{categoryName}
-  /book/find/{id}
-  /book/save
-  /book/update/{id}
-  /book/delete/{id}
+  /book//findByCategoryName/{categoryName} <br>
+  /book/find/{id} <br>
+  /book/save <br>
+  /book/update/{id} <br>
+  /book/delete/{id} <br>
   
   Book 등록
   
@@ -91,10 +91,10 @@ https://books.toscrape.com/
   <h2>BookReply 기능</h2>
 
   EndPoint
-  /bookReply/{id}/save
-  /bookReply/list
-  /bookReply/{replyId}/update
-  /bookReply/delete/{replyId}
+  /bookReply/{id}/save <br>
+  /bookReply/list <br>
+  /bookReply/{replyId}/update <br>
+  /bookReply/delete/{replyId} <br>
   
   댓글 등록
   
@@ -107,7 +107,7 @@ https://books.toscrape.com/
   <h2>BookCategory 기능</h2>
 
   EndPoint
-  /bookCategory/findAll
+  /bookCategory/findAll <br>
   
   
   카테고리 등록
