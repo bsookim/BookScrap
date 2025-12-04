@@ -16,6 +16,5 @@ book정보 스크래핑 insert
 <center>
   <img src="https://github.com/user-attachments/assets/b3be45c3-1658-427f-8bc9-8605fd2972a0" width="500" />
   <img src="https://github.com/user-attachments/assets/a6d8a1e6-eb74-40ca-bb24-8205458b6ffc" width="500" />
-
-
+  <img src="https://github.com/user-attachments/assets/03621074-8930-4744-b3a6-c0a4a8e9b25c" width="500" />
 </center>
