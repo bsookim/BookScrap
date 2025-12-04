@@ -17,7 +17,7 @@
 <h3>Database</h3>
 - Postgresql
 
-<be>
+<br>
 
 스크래핑 사이트 <br>
 https://books.toscrape.com/
