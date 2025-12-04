@@ -1,3 +1,18 @@
+이 프로젝트는 React + Spring Boot 기반의 도서 관리 스크래핑 웹 서비스입니다.
+
+<h3>Frontend</h3>
+- React
+- TypeScript
+- Vite
+
+<h3>Backend</h3>
+- Spring Boot
+- JPA
+- Gradle
+
+<h3>Database</h3>
+- Postgresql
+
 스크래핑 사이트 <br>
 https://books.toscrape.com/
 
