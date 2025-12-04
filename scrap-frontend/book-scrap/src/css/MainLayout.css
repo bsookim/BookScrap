@@ -4,7 +4,6 @@
   background-color: #fff;
 }
 
-/* 왼쪽 카테고리 */
 .layout-aside {
   width: 240px;
   border-right: 1px solid #ddd;
@@ -12,7 +11,6 @@
   background-color: #f9f9f9;
 }
 
-/* 카테고리 아이템 */
 .category-item {
   padding: 8px;
   margin-bottom: 8px;
@@ -24,14 +22,12 @@
   background-color: #eee;
 }
 
-/* 오른쪽 메인 */
 .layout-main {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
 }
 
-/* 책 리스트 - 가로 카드 형태 */
 .book-list ul {
   display: flex;
   flex-wrap: wrap;
@@ -41,7 +37,7 @@
 }
 
 .book-list li {
-  width: 120px; /* 카드 너비 */
+  width: 120px; 
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 8px;
@@ -49,7 +45,6 @@
   box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
 }
 
-/* 책 이미지 */
 .book-list li img {
   width: 100px;
   height: 100px;
@@ -57,7 +52,6 @@
   margin-bottom: 4px;
 }
 
-/* 페이징 버튼 */
 .pagination button {
   padding: 4px 8px;
   margin-right: 4px;
