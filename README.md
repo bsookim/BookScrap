@@ -62,7 +62,7 @@ https://books.toscrape.com/
   <img src="https://github.com/user-attachments/assets/e444ca7d-b298-4fe8-a433-dd2b7e73fc6a" width="500"/><br>
   <img src="https://github.com/user-attachments/assets/3f0f7b67-c21a-4fad-925d-d02be4115dec" width="500"/>
   <img src="https://github.com/user-attachments/assets/e8d430ca-bc2f-4353-90c3-a564400552c9" width="500"/>
-
+  <br><br>
   <span>
   본 프로젝트는 https://books.toscrape.com/ 사이트의
   상품 정보와 카테고리 정보를 Selenium을 이용해 자동 스크래핑하여
