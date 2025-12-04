@@ -69,7 +69,7 @@ https://books.toscrape.com/
   데이터베이스에 CRUD 기능을 중심으로 제작되었습니다.
   스크래핑된 데이터는 다음과 같이 활용됩니다:
     
-  Book 기능
+  <h2>Book 기능</h2>
   
   Book 등록
   
@@ -80,7 +80,7 @@ https://books.toscrape.com/
   Book 삭제
   
   
-  댓글(BookReply) 기능
+  <h2>BookReply 기능</h2>
   
   댓글 등록
   
@@ -90,7 +90,7 @@ https://books.toscrape.com/
   
   댓글 삭제
   
-  카테고리(Category)
+  <h2>BookCategory 기능</h2>
   
   카테고리 등록
   
