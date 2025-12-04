@@ -114,6 +114,5 @@ https://books.toscrape.com/
   
   카테고리 조회
   
-  감사합니다.
   </span>
 </center>
