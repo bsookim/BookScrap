@@ -4,6 +4,7 @@
 - React
 - TypeScript
 - Vite
+- Node
 
 <h3>Backend</h3>
 - Spring Boot
