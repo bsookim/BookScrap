@@ -20,28 +20,34 @@
 https://books.toscrape.com/
 <br>
 
-필드명         타입              설명                                    
-id            Long              PK, 자동 증가                           
-title         String            상품명                                  
-price         String            가격                                   
-stock         String            재고                                   
-description   String            상품 설명                                
-upc           String            UPC 코드                               
-productType   String            상품 타입                                
-currentUrl    String            원본 상품 URL                            
-thumbNail     String            썸네일 이미지 URL                          
-bookReply     List<BookReply>   댓글 엔티티(1:N, Cascade + orphanRemoval) 
-categories   List<String>       카테고리 문자열 리스트(값 타입 컬렉션)               |
+
+| 필드명         | 타입              | 설명                                   |
+| ----------- | --------------- | ------------------------------------ |
+| id          | Long            | PK, 자동 증가                            |
+| title       | String          | 상품명                                  |
+| price       | String          | 가격                                   |
+| stock       | String          | 재고                                   |
+| description | String          | 상품 설명                                |
+| upc         | String          | UPC 코드                               |
+| productType | String          | 상품 타입                                |
+| currentUrl  | String          | 원본 상품 URL                            |
+| thumbNail   | String          | 썸네일 이미지 URL                          |
+| bookReply   | List<BookReply> | 댓글 엔티티(1:N, Cascade + orphanRemoval) |
+| categories  | List<String>    | 카테고리 문자열 리스트(값 타입 컬렉션)               |
 
 
-<br>
+| 필드명          | 타입     | 설명          |
+| ------------ | ------ | ----------- |
+| id           | Long   | PK          |
+| categoryUrl  | String | 카테고리 원본 URL |
+| categoryName | String | 카테고리 이름     |
 
-필드명         타입     설명          
-id            Long     PK          
-categoryUrl   String   카테고리 원본 URL 
-categoryName  String   카테고리 이름     
 
-
+| 필드명     | 타입     | 설명                 |
+| ------- | ------ | ------------------ |
+| id      | Long   | PK                 |
+| content | String | 댓글 내용              |
+| book    | Book   | Book과 다대일 관계 (N:1) |
 
 
 
