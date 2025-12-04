@@ -20,6 +20,8 @@ book정보 스크래핑 insert
   <img src="https://github.com/user-attachments/assets/99b7dcf7-5c25-4e9d-a019-0a52dcd8dd1e" width="500"/>
   <img src="https://github.com/user-attachments/assets/e444ca7d-b298-4fe8-a433-dd2b7e73fc6a" width="500"/>
   <img src="https://github.com/user-attachments/assets/3f0f7b67-c21a-4fad-925d-d02be4115dec" width="500"/>
+  <img src="https://github.com/user-attachments/assets/3f0f7b67-c21a-4fad-925d-d02be4115dec" width="500"/>
+  <img src="https://github.com/user-attachments/assets/a95f22de-718d-4df3-bdff-63f8d9fb5930" width="500"/>
 
 
 </center>
