@@ -1,21 +1,79 @@
+<h1>스킬 인벤토리 추가</h1>
+
+### Backend
+
+**Java**
+
+- Java 17 기반 객체지향 설계 및 개발 경험
+- 프로젝트에는 없지만 자바 컬렉션(List,Set,Map등), 스트림 API 활용 가능
+- 유지보수성을 고려한 코드 작성 및 리팩토링 경험
+
+**Spring Boot**
+
+- Spring Boot 기반 개발 경험
+- MVC 구조 이해 및 적용
+- JPA/Hibernate를 활용한 데이터베이스 연동
+- Exception Handling, Validation 처리 경험
+- 환경별 설정 분리 및 프로파일 관리 경험
+
+### Build / Dependency Management
+
+**Gradle**
+
+- Gradle 기반 Spring Boot 프로젝트 빌드 및 실행 경험
+- 빌드 그래들을 통한 의존성 추가 및 버전 관리
+- 환경에 따라 설정 값 수정 및 플러그인 설정 경험
+
+### Automation
+
+**Selenium**
+
+- Selenium을 활용한 동적 웹 자동화 테스트 및 크롤링 경험
+- 동적 요소 처리 및 예외 상황 대응 경험 (명시적 대기 사용)
+
+### Jsoup
+
+- Jsoup을 활용한 HTML 파싱 및 데이터 크롤링
+- CSS Selector를 이용한 원하는 데이터 추출 Selector를 느슨하게 연결해 데이터 가져오기
+- 정적 웹 페이지 대상 크롤링 로직 구현
+- Selenium과 병행하여 사용 (동적 페이지 접근 후 HTML 파싱 명시적 대기 사용)
+
+## JPA (Java Persistence API)
+
+- JPA를 활용한 **객체–관계 매핑(ORM)** 기반 데이터 접근 로직 구현
+- Entity,Repository,Service 구조를 활용한 **도메인 중심 설계**
+- Spring Data JPA를 사용한 **CRUD 및 기본 쿼리 처리**
+- OneToMany,ManyToOne,OneToOne,양방향 매핑 등 **연관관계 매핑 경험**
+- *지연 로딩(Lazy Loading)**과 즉시 로딩(Eager Loading)의 차이 이해 및 적용
+- 트랜잭션 어노테이션을 활용한 **트랜잭션 관리**
+- JPQL,QueryDsl을 활용한 **커스텀 조회 로직 구현 (Qtype 생성)**
+- N+1 문제에 대한 기본적인 이해 및 Fetch Join 활용 경험
+
+### MyBatis
+
+- SQL 기반 데이터 접근 프레임워크(MyBatis) 사용 경험
+- XML Mapper를 활용한 SQL 작성 및 관리
+- 동적 SQL(<if>, <choose>, <foreach> 등)을 활용한 조건별 쿼리 처리
+- Parameter/Result 매핑을 통한 객체 ↔ SQL 데이터 변환
+- 복잡한 쿼리(조인, 서브쿼리) 작성 및 유지보수 경험
+
+**React (초급)**
+
+- React 기반 프론트엔드 화면 개발 경험
+- 함수형 컴포넌트(Function Component) 사용
+- useState, useEffect 등 기본 Hook 활용 가능
+- Axios를 이용한 백엔드 API 연동 경험
+- 간단한 CRUD 화면 구현 경험
+- props를 이용한 컴포넌트 간 데이터 전달
+- 조건부 렌더링 및 리스트 렌더링 구현
+- 기본적인 폼 처리 및 이벤트 핸들링 가능
+- CSS / 간단한 UI 라이브러리(Material UI, Ant Design 등) 사용 경험
+
 <h2>개발 기간: 2025-11-26 ~ 2025-12-04
 
 이 프로젝트는 React + Spring Boot 기반의 도서 스크래핑 웹 서비스입니다.
 </h2>
-<h3>Frontend</h3>
-- React
-- TypeScript
-- Vite
-- Node
 
-<h3>Backend</h3>
-- Spring Boot
-- JPA
-- Gradle
-- Selenium
-
-<h3>Database</h3>
-- Postgresql
 
 <br>
 
